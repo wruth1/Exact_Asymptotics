@@ -22,9 +22,9 @@
 
 I'm doing some Monte Carlo to verify the new SE formulas. Recall that we're doing mediation analysis, so we've got a response, $Y$, an exposure, $X$, and a mediation, $M$. We also have some number of confounders, which will be grouped together in the matrix $W$. Broadly speaking, we fit two regression models, one to predict $M$ using $X$ and $W$, the other to predict $Y$ using $M$, $X$ and $W$. We then compute the mediation effect (specifically, the total effect of $X$ on $Y$) as a function of the coefficients from these two regression models. An asymptotic SE for our mediation effect estimator can then be obtained from the asymptotic standard errors of our fitted regression coefficients using the $\delta$-method.
 
-So far, so simple. There are a few places that things start to get more complicated. First, each of the two regression models can be either linear of logistic depending on whether the corresponding response variable is continuous or binary\footnote{In principle, we could have $Y$ and/or $M$ follow any distribution with a suitable GLM formulation. I don't think I've ever seen count data (i.e. Poisson regression) used here, much less anything more exotic.}. Furthermore, we can add random effects to our regression models. In the trust study, we have random effects for the intercept, $X$ and $M$ (naturally, the latter only applies when predicting $Y$).
+So far, so simple. There are a few places that things start to get more complicated. First, each of the two regression models can be either linear of logistic depending on whether the corresponding response variable is continuous or binary\footnote{In principle, we could have $Y$ and/or $M$ follow any distribution with a suitable GLM formulation. I don't think I've ever seen count data (i.e. Poisson regression) used here, much less anything more exotic.}. Furthermore, we can add random effects to our regression models. In the trust study, we have random effects for the intercept, $X$ and $M$ (naturally, the latter only applies when predicting $Y$). The problem is slightly simpler with a single confounder (mostly, the bookkeeping is a bit easier), although I don't want to stick to this for long.
 
-We will address each of these extra layers of complexity in turn. First though, we start with the simplest version of the problem.
+We will address each of these extra layers of complexity in turn. First though, we start with the simplest version of the problem. 
 
 \section{Continuous Response, Continuous Mediation, Fixed-Effects}
 
@@ -44,6 +44,11 @@ On each dataset, we fit the two regression models, then extract coefficients and
     \caption{Standard errors for estimated mediation effect with continuous response and mediation, fixed-effects.}
     \label{tab:SEs_cont_fix}
 \end{table}
+
+The results are very similar if we use multiple confounders (specifically, I use 3). Henceforth, I will use 3 confounders in my analysis.
+
+\section{Categorical Response and Mediation, Fixed-Effects}
+
 
 
 \end{document}
