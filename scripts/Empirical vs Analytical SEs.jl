@@ -13,9 +13,10 @@ using GLM   # For linear and logistic regression with fixed effects
 
 num_reps = 1000
 n = 100
+p_conf = 3
 
-par_list_name = @savename num_reps n 
-@load datadir("Cont-Resp, Cont-Med, Fixed-$par_list_name.jld2") all_a_hats all_a_SEs all_b_hats all_b_SEs all_med_hats all_med_SEs
+par_list_name = @savename num_reps n p_conf
+@load datadir("Bin-Resp, Cont-Med, Fixed-$par_list_name.jld2") all_a_hats all_a_SEs all_b_hats all_b_SEs all_med_hats all_med_SEs
 
 
 

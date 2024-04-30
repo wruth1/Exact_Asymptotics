@@ -27,6 +27,7 @@ So far, so simple. There are a few places that things start to get more complica
 We will address each of these extra layers of complexity in turn. First though, we start with the simplest version of the problem. 
 
 \section{Continuous Response, Continuous Mediation, Fixed-Effects}
+\label{sec:cont_cont_fix}
 
 I set the sample size, $n$, to 100. Each regression coefficient is 1 and the residual standard deviation in both regression models is $0.2$. I use a single confounder and generate both it, $W$, and the exposure, $X$, as iid $\mathrm{N}(1,1)$. I generate $1000$ datasets, each with different values for $X$ and $W$. 
 
@@ -47,7 +48,29 @@ On each dataset, we fit the two regression models, then extract coefficients and
 
 The results are very similar if we use multiple confounders (specifically, I use 3). Henceforth, I will use 3 confounders in my analysis.
 
-\section{Categorical Response and Mediation, Fixed-Effects}
+\section{Continuous Response, Binary Mediation, Fixed-Effects}
+
+Here things start getting messier. I will return to documenting the analysis, but first I want to discuss the proposed estimand. Note that the total effect given in Case 2 of Section 1.1, $\gamma(a, \alpha, \beta_1, \beta_2)$ depends on our choice of levels for $X$ and $W$. If $X$ is binary then its choice is easy since we're computing the effect of a one-unit increase in $X$. For $W$ however, I don't see any natural choice of reference value. One option is to evaluate $\gamma$ at each $W$ in the observed dataset and average to ``marginalize out'' $W$. I have a few references which discuss doing something along these lines, but it might be worth discussing on Thursday. For now, I'm just going to choose a value of $W$ and study ``fixed-confounder'' mediation effects.
+
+
+I repeated the analysis in Section \ref{tab:SEs_cont_fix}, this time with a binary mediator. Datasets are generated with $n=100$ observations, 3 confounders. Regression slopes are set to 1, and the intercept is set so that the expected linear predictor is approximately zero (this helps keep the number of 0s and 1s for $M$ approximately balanced). The residual variance for $Y$ is set to $0.2^2$.
+
+Following the analysis outlined by Bruno, I use a logistic regression model for the mediator and linear regression for the response. Formulas for the $\delta$-method are messier, but conceptually this case is nearly identical to the continuous response setting. One difference here is that the total mediation effect depends on levels of the covariates, specifically $X$ and $W$. I report results for $X=0$ and $W = [1,1,1]^T$. This value of $X$ is very natural when the exposure is binary. I have no such reason for choosing this value of $W$. See the opening paragraph of this section for more on this.
+
+I generated $1000$ datasets, fit regression models for $M$ (logistic) and $Y$ (linear), then computed our estimate for the mediation effect. I also evaluated our SE formula on each dataset. Table \ref{tab:SEs_cont_bin_fix} gives the empirical standard error of our total effect estimator, as well as the mean and median analytical SE.
+
+\begin{table}
+    \centering
+    \begin{tabular}{|c|c|c|}
+        \hline
+        Empirical & Mean Analytical & Median Analytical\\
+        \hline
+        0.0540 & 0.0584 & 0.0577\\
+        \hline
+    \end{tabular}
+    \caption{Standard errors for estimated mediation effect with continuous response and binary mediation, fixed-effects.}
+    \label{tab:SEs_cont_bin_fix}
+\end{table}
 
 
 
