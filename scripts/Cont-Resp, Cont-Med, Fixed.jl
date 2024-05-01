@@ -19,7 +19,7 @@ Random.seed!(1)
 
 num_reps = 1000    # Number of datasets to generate
 
-n = 100
+n = 1000
 
 a_0 = 1
 a_1 = 1
@@ -135,7 +135,7 @@ Random.seed!(1)
 
 num_reps = 1000    # Number of datasets to generate
 
-n = 100
+n = 1000
 p_conf = 3      # Number of confounders
 
 a_0 = 1
