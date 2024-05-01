@@ -10,17 +10,18 @@ using JLD2
 using GLM   # For linear and logistic regression with fixed effects
 
 include("../src/Helpers - General.jl")
-include("../src/Helpers - Bin-Resp, Cont-Med, Fixed.jl")
+include("../src/Helpers - Bin-Resp, Bin-Med, Fixed.jl")
+
+# include("src/Helpers - General.jl")
+# include("src/Helpers - Bin-Resp, Bin-Med, Fixed.jl")
 
 
 
-
-
-Random.seed!(1)
+Random.seed!(11111)
 
 num_reps = 1000    # Number of datasets to generate
 
-n = 100
+n = 10000
 p_conf = 3      # Number of confounders
 
 a_1 = 1
@@ -134,23 +135,17 @@ all_med_SEs = []
 
     ## Compute linear predictor for M and Y at reference levels of X and W    
     eta_hat = a_hat[1] + a_hat[2] * x_pred + sum(a_hat[3:end] .* W_pred)    # Lin pred for M
-
-
     zeta_hat = b_hat[1] + b_hat[3] * x_pred + sum(b_hat[4:end] .* W_pred)   # Lin pred for Y (without M contribution)
 
 
-    #! START HERE
-
-
-
-
     ## Compute mediation effect
-    delta = get_delta(eta_hat, a_x)
-    med_hat = get_gamma(delta, b_m, b_x)
-
+    med_hat = get_odds_ratio(eta_hat, a_x, zeta_hat, b_x, b_m)
     push!(all_med_hats, med_hat)
 
-    ## Standard error
+
+
+
+    ## Analytical standard error
 
     ### Regression coefficients' asymptotic covariance matrix
     a_size = size(a_cov, 1)
@@ -160,14 +155,14 @@ all_med_SEs = []
     reg_covs[1:a_size, 1:a_size] = a_cov
     reg_covs[a_size+1:end, a_size+1:end] = b_cov
 
-    reg_asymp_cov = n .* reg_covs_raw
+    reg_asymp_cov = n .* reg_covs
 
 
     ### Derivatives of gamma wrt each parameter
-    dg_dt = d_gamma_d_theta(eta_hat, x_pred, W_pred, a_hat, b_hat)
+    dOR_dt = d_OR_d_theta(eta_hat, a_x, zeta_hat, b_x, b_m, x_pred, W_pred)
 
     ### Compute asymp var of gamma_hat
-    asymp_var = dg_dt' * reg_asymp_cov * dg_dt
+    asymp_var = dOR_dt' * reg_asymp_cov * dOR_dt
     asymp_SE = sqrt(asymp_var)
 
     ### Compute SE of gamma_hat
@@ -181,7 +176,7 @@ end
 
 
 par_list_name = @savename num_reps n p_conf
-@save datadir("Bin-Resp, Cont-Med, Fixed-$par_list_name.jld2") all_a_hats all_a_SEs all_b_hats all_b_SEs all_med_hats all_med_SEs
+@save datadir("Bin-Resp, Bin-Med, Fixed-$par_list_name.jld2") all_a_hats all_a_SEs all_b_hats all_b_SEs all_med_hats all_med_SEs
 println("Work complete!")
 
 

@@ -78,11 +78,27 @@ I generated $1000$ datasets, fit regression models for $M$ (logistic) and $Y$ (l
 
 For my own future reference, I'm going to set out some notation here. $a$ and $b$ are the vectors of regression coefficients in a model for $M$ and $Y$ respectively, whether linear or logistic. We use $\eta$ and $\zeta$ for the linear predictors of $M$ and $Y$ respectively. In my code for Section \ref{sec:cont_bin_fix}, I used $\eta$, but didn't really need $\zeta$. Here I will. I use $\gamma$ for the total mediation effect. In the previous section (albeit only in my code), I used $\delta$ for $\bE(M | X=x+1) - \bE(M | X=x)$, although here I don't think I will need this quantity.
 
+I had to update Bruno's formulas. It looks like he forgot to include the $\bP(Y=1 | X=x, \mathbf{W}=\mathbf{w})$ term in the odds, and thus in the odds ratio. This has been changed now in the Overleaf document. I also worked out all the partial derivatives using Maple, which can produce \textit{Julia} (or \textit{R}, \textit{Python}) code to evaluate these horrendous expressions. All partials were validated against a simple finite difference approximation.
+
+Table \ref{tab:SEs_bin_bin_fix} gives empirical and analytical SEs when $n=1000$.
+
+\begin{table}
+    \centering
+    \begin{tabular}{|c|c|c|}
+        \hline
+        Empirical & Mean Analytical & Median Analytical\\
+        \hline
+        0.1060 & 0.1064 & 0.1062\\
+        \hline
+    \end{tabular}
+    \caption{Standard errors for estimated mediation effect with binary response and mediation, fixed-effects.}
+    \label{tab:SEs_bin_bin_fix}
+\end{table}
 
 
 
 \section{Open Questions}
 
-How does the standard error decompose between multiple responses with the same fixed covariates (i.e. $X$ and $W$), versus across replicated covariates? I can imagine how to do this, at least naively: do a bunch of analyses on each of a bunch of sets of covariates. Compute the average ``within-covariates'' variance and the average total variance. Compute the fraction of total variance due to response replication and, interestingly, one minus this fraction as a naive representation of the variance fraction due to covariate variability.
+How does the standard error decompose between multiple responses with the same fixed covariates (i.e. $X$ and $W$), versus across replicated covariates? I can imagine how to do this, at least naively: do a bunch of analyses on each of a bunch of sets of covariates. Compute the average ``within-covariates'' variance and the average total variance. Compute the fraction of total variance due to response replication and, interestingly, one minus this fraction as a naive representation of the variance fraction due to covariate variability. \textbf{Every time I've checked this, the difference has been very small. This isn't a priority for me right now.}
 
 \end{document}

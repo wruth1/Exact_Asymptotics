@@ -30,10 +30,3 @@ mean_SE = mean(all_med_SEs)
 median_SE = median(all_med_SEs)
 
 std(all_med_SEs)
-
-deleteat!(all_med_SEs, 892)
-
-for i in eachindex(all_med_SEs)
-    println(i)
-    all_med_SEs[i]
-end
