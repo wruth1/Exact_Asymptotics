@@ -9,9 +9,11 @@ using ProgressMeter, DrWatson
 using JLD2
 using GLM   # For linear and logistic regression with fixed effects
 
-include("../src/Helpers - General.jl")
-include("../src/Helpers - Bin-Resp, Cont-Med, Fixed.jl")
+# include("src/Helpers - General.jl")
+# include("src/Helpers - Cont-Resp, Bin-Med, Fixed.jl")
 
+include("../src/Helpers - General.jl")
+include("../src/Helpers - Cont-Resp, Bin-Med, Fixed.jl")
 
 
 
@@ -20,7 +22,7 @@ Random.seed!(1)
 
 num_reps = 1000    # Number of datasets to generate
 
-n = 100
+n = 1000
 p_conf = 3      # Number of confounders
 
 a_1 = 1
@@ -36,6 +38,9 @@ sigma_e = 0.2   # Residual SD for Y
 
 
 
+# Reference values at which we compute the total mediation effect
+x_pred = 0
+W_pred = repeat([1], p_conf)    # W=[1,1,1]
 
 
 # X_dist = Bernoulli(0.5)
@@ -55,7 +60,7 @@ all_b_SEs = []
 all_med_hats = []
 all_med_SEs = []
 
-# @showprogress Threads.@threads for _ in 1:M
+# @showprogress Threads.@threads for _ in 1:num_reps
 @showprogress for _ in 1:num_reps
 
     
@@ -116,16 +121,8 @@ all_med_SEs = []
 
 
 
-    ## Extract linear predictor for M at X=0, W=[1,1,1]
-    x_pred = 0
-    W_pred = repeat([1], p_conf)    # W=[1,1,1]
-
-    data_pred = DataFrame(X=x_pred)
-    for p in 1:p_conf
-        data_pred[!,Symbol("W$p")] = W_pred[p:p]    # Can only fill a data frame with vectors, not scalars
-    end
-
-    eta_hat = expit(predict(M_model, data_pred)[1])
+    ## Compute linear predictor for M at reference levels of X and W    
+    eta_hat = a_hat[1] + a_hat[2] * x_pred + sum(a_hat[3:end] .* W_pred)
 
 
 
@@ -154,7 +151,7 @@ all_med_SEs = []
     reg_covs[1:a_size, 1:a_size] = a_cov
     reg_covs[a_size+1:end, a_size+1:end] = b_cov
 
-    reg_asymp_cov = n .* reg_covs_raw
+    reg_asymp_cov = n .* reg_covs
 
 
     ### Derivatives of gamma wrt each parameter
@@ -175,7 +172,7 @@ end
 
 
 par_list_name = @savename num_reps n p_conf
-@save datadir("Bin-Resp, Cont-Med, Fixed-$par_list_name.jld2") all_a_hats all_a_SEs all_b_hats all_b_SEs all_med_hats all_med_SEs
+@save datadir("Cont-Resp, Bin-Med, Fixed-$par_list_name.jld2") all_a_hats all_a_SEs all_b_hats all_b_SEs all_med_hats all_med_SEs
 println("Work complete!")
 
 

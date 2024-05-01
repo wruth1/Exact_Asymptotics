@@ -16,7 +16,7 @@ n = 100
 p_conf = 3
 
 par_list_name = @savename num_reps n p_conf
-@load datadir("Bin-Resp, Cont-Med, Fixed-$par_list_name.jld2") all_a_hats all_a_SEs all_b_hats all_b_SEs all_med_hats all_med_SEs
+@load datadir("Cont-Resp, Bin-Med, Fixed-$par_list_name.jld2") all_a_hats all_a_SEs all_b_hats all_b_SEs all_med_hats all_med_SEs
 
 
 
@@ -28,3 +28,12 @@ emp_SE = std(all_med_hats)
 # Analytical SEs
 mean_SE = mean(all_med_SEs)
 median_SE = median(all_med_SEs)
+
+std(all_med_SEs)
+
+deleteat!(all_med_SEs, 892)
+
+for i in eachindex(all_med_SEs)
+    println(i)
+    all_med_SEs[i]
+end
