@@ -5,6 +5,7 @@
 \usepackage{natbib}
 \usepackage{caption, subcaption}
 \usepackage{graphicx}
+\usepackage{bm}             % For bold math symbols
 
 
 \newcommand{\bG}{\mathbb{G}}
@@ -12,6 +13,8 @@
 \newcommand{\bP}{\mathbb{P}}
 \newcommand{\bE}{\mathbb{E}}
 \newcommand{\bV}{\mathbb{V}}
+
+\newcommand{\zdens}{\frac{e^{-z^2/2}}{\sqrt{2\pi}}}
 
 
 \title{Verification of SE Formulas for Mediation Analysis}
@@ -56,7 +59,7 @@ Here things start getting messier. I will return to documenting the analysis, bu
 
 I repeated the analysis in Section \ref{tab:SEs_cont_fix}, this time with a binary mediator. Datasets are generated with $n=1000$ observations, 3 confounders. Regression slopes are set to 1, and the intercept is set so that the expected linear predictor is approximately zero (this helps keep the number of 0s and 1s for $M$ approximately balanced). The residual variance for $Y$ is set to $0.2^2$.
 
-Following the analysis outlined by Bruno, I use a logistic regression model for the mediator and linear regression for the response. Formulas for the $\delta$-method are messier, but conceptually this case is nearly identical to the continuous response setting. One difference here is that the total mediation effect depends on levels of the covariates, specifically $X$ and $W$. I report results for $X=0$ and $W = [1,1,1]^T$. This value of $X$ is very natural when the exposure is binary. I have no such reason for choosing this value of $W$. See the opening paragraph of this section for more on this.
+Following the analysis outlined by Bruno, I use a logistic regression model for the mediator and linear regression for the response. Formulas for the $\delta$-method are messier, but conceptually this case is nearly identical to the continuous response setting. One difference here is that the total mediation effect depends on levels of the covariates, specifically $X$ and $W$. I report results for $X=0$ and $W = [1,1,1]^T$. This value of $X$ is very natural when the exposure is binary. I have no such reason for choosing this value of $W$. See the opening paragraph of this section for more details.
 
 I generated $1000$ datasets, fit regression models for $M$ (logistic) and $Y$ (linear), then computed our estimate for the mediation effect. I also evaluated our SE formula on each dataset. Table \ref{tab:SEs_cont_bin_fix} gives the empirical standard error of our total effect estimator, as well as the mean and median analytical SE.
 
@@ -76,7 +79,7 @@ I generated $1000$ datasets, fit regression models for $M$ (logistic) and $Y$ (l
 
 \section{Binary Response, Binary Mediator, Fixed-Effects}
 
-For my own future reference, I'm going to set out some notation here. $a$ and $b$ are the vectors of regression coefficients in a model for $M$ and $Y$ respectively, whether linear or logistic. We use $\eta$ and $\zeta$ for the linear predictors of $M$ and $Y$ respectively. In my code for Section \ref{sec:cont_bin_fix}, I used $\eta$, but didn't really need $\zeta$. Here I will. I use $\gamma$ for the total mediation effect. In the previous section (albeit only in my code), I used $\delta$ for $\bE(M | X=x+1) - \bE(M | X=x)$, although here I don't think I will need this quantity.
+For my own future reference, I'm going to set out some notation here. $a$ and $b$ are the vectors of regression coefficients in a model for $M$ and $Y$ respectively, whether linear or logistic. We use $\eta$ and $\zeta$ for the linear predictors of $M$ and $Y$ respectively. In my code for Section \ref{sec:cont_bin_fix}, I used $\eta$, but didn't really need $\zeta$. Here I will. In the previous section, I used $\gamma$ for the total mediation effect and $\delta$ for $\bE(M | X=x+1) - \bE(M | X=x)$, although the latter I only used in my code. Here, I can just talk about odds and odds ratios.
 
 I had to update Bruno's formulas. It looks like he forgot to include the $\bP(Y=1 | X=x, \mathbf{W}=\mathbf{w})$ term in the odds, and thus in the odds ratio. This has been changed now in the Overleaf document. I also worked out all the partial derivatives using Maple, which can produce \textit{Julia} (or \textit{R}, \textit{Python}) code to evaluate these horrendous expressions. All partials were validated against a simple finite difference approximation.
 
@@ -94,6 +97,58 @@ Table \ref{tab:SEs_bin_bin_fix} gives empirical and analytical SEs when $n=1000$
     \caption{Standard errors for estimated mediation effect with binary response and mediation, fixed-effects.}
     \label{tab:SEs_bin_bin_fix}
 \end{table}
+
+
+\section{Binary Response, Binary Mediator, Random-Effects}
+
+Before doing any computing, a few notes about Bruno's derivation. The calculation for $n^{1/2}(\hat{\sigma}_U(x) - \sigma_U(x))$ contains a few steps which weren't immediately obvious to me. I'm going to clarify some of them here. First, what is the point of the first step? Well, note that $\hat{\sigma}_U(x) + \sigma_U(x) = 2 \sigma_U(x) + o_p(1)$, so the denominator is well-controlled. The numerator is now structured so we can use our formula for $\sigma^2_U(x)$ in terms of the components of $\Sigma_U$ from the previous line. While not strictly necessary, this saves us from the first step of every derivative calculation being applying the chain rule to deal with a square root. Being a little bit more formal, what we're doing here is applying the $\delta$-method to the numerator (with the $n^{1/2}$), then using Slutsky's Theorem/The Continuous Mapping Theorem to handle the ratio. No problems.
+
+The second point that tripped me up briefly is how the formula is organized. This is actually chosen to match our expression for $\sigma_U^2(x)$ in terms of the components of $\Sigma_U$ from the previous line. He then re-arranges to collect like terms in the parameter estimates. Third, there are a lot of $\sigma_U(x)$s in the denominators, but no 2s. This is because every term in our expression for $\sigma_U^2(x)$ is either a quadratic or multiplied by 2, so every term in the gradient of $\sigma_U^2(x)$ contains a 2.
+
+Fourth, I point out that the definition of $\phi(\mu, \sigma)$ is pretty clever. It reduces the problem from one with multiple random effects of a univariate problem with only a single Gaussian. This simplification arises from the observation that the random effects only enter into $\bP(Y=1)$ through a weighted sum. Since weighted sums of Gaussians are Gaussian, we can replace the whole sum with a new single Gaussian, setting the mean and variance of this new RV appropriately.
+
+Now onto some computation.
+
+\subsection{UQ for GLMM Parameters}
+
+Immediately I've encountered a problem. The standard software reports standard errors for the fixed effects' estimators, but not for the random effects' variance parameters\footnote{I'm going to be a bit sloppy here and refer to the standard error of a parameter. By this, I mean the standard error of our estimator for that parameter. It's just getting to be too much typing to always write the latter.}. I guess I'm going to have to work this out myself.
+
+To this end, I need the Hessian of the observed data (log) likelihood. There are tricks from the EM algorithm literature for doing this, but I think our problem is simple enough that I can just reduce it to a small-ish number of one-dimensional integrals. To start, recall the formula Bruno gives for $\bP(Y=1 | X=x, \mathbf{W}=\mathbf{w}) =: \bP_1$. Specifically, he expresses this quantity in terms of the $\phi$ function evaluated at four different arguments. Thus, if I have the Hessian of $\phi$, I can compute the Hessian of $\bP_1$ (and $\bP_0$), which in-turn gives me the Hessian of the log-likelihood based on a single point. 
+
+This actually isn't quite what I need to do. In order to incorporate grouping structure, I need a generalization of the $\phi$ function, whose integrand contains a product of terms with the form $(1 + \exp(-\mu_i - \sigma_i z))^{-1}$, with $i$ ranging over all points in a single group. More formally, write
+%
+\begin{equation}
+    \Phi(\bm{\mu}, \bm{\sigma}) := \int \left[ \prod_i \frac{1}{\left( 1 + e^{-\mu_i - \sigma_i z} \right)} \right] \frac{e^{-z^2/2}}{\sqrt{2\pi}} dz
+\end{equation}
+%
+for the generalization of $\phi$ to multiple $\mu$, $\sigma$ from the same group. Write $P(z, \bm{\mu}, \bm{\sigma})$ for the product term in the integrand or, when no confusion can arise, $P(z)$ or even $P$. The likelihood of a dataset can now be obtained by first evaluating $\Phi$ on each group, then multiplying the results.
+
+In order to compute the Hessian of the log-likelihood, and by extension the asymptotic variance of our MLEs, we will require the gradient and Hessian of $\Phi$ with respect to $\bm{\mu}$ and $\bm{\sigma}$. To this end, observe that $\nabla_\mu P = P \bm{g}$, where $\bm{g}$ is a vector with $i$th component $- \nabla_{\mu_i} \log[1 + \exp(-\mu_i - \sigma_i z)] = [1 + \exp(\mu_i + \sigma_i z)]^{-1}$
+%
+\begin{align}
+    \nabla_{\mu} \Phi(\bm{\mu}, \bm{\sigma}) &= \int \nabla_\mu P \frac{e^{-z^2/2}}{\sqrt{2\pi}} dz\\
+    &=  \int P \bm{g} \zdens dz\\
+    &= \int \frac{P}{1 + e^{\bm{\mu} + \bm{\sigma}z}} \zdens dz
+\end{align}
+%
+where arithmetic operations on vectors are interpreted componentwise.
+Similarly, $\nabla_\sigma P = z P \bm{g}$ and
+%
+\begin{equation}
+    \nabla_{\sigma} \Phi(\bm{\mu}, \bm{\sigma}) = \int z P \bm{g} \zdens dz = \int z \frac{P}{1 + e^{\bm{\mu} + \bm{\sigma}z}} \zdens dz
+\end{equation}
+%
+Next, we need the second-derivatives. These are obtained simply using Maple or Wolfram Alpha. \textcolor{red}{To be continued\ldots}
+
+Before working harder on the derivatives of $\Phi$, I want to say exactly what I plan to do with this function. First, observe that the likelihood for the observed data, $Y$ and $M$, trivially factors as $\mathcal{L}(Y, M | X, W) = \mathcal{L}(Y|M, X, W) \cdot \mathcal{L}(M| X, W)$. Thus, we can treat our regression models for $M$ and $Y|M$ separately. Next observe that, within a single group,
+%
+\begin{align}
+    \mathcal{L}(M| X, W) &= \bP(M| X, W)\\
+    &= \bE_V \bP(M | V, X, W)\\
+    &= \bE_V \left( \left[ \prod_{m_i = 1} \bP(M=1 |V, X=x_i, W=w_i) \right]\right. \nonumber \\ 
+    &\left.\left[ \prod_{m_i = 0} \bP(M=0 |V, X=x_i, W=w_i)\right]\right)\\
+    &= 
+\end{align}
 
 
 
