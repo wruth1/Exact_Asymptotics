@@ -28,7 +28,6 @@ p_conf = 3      # Number of confounders
 a_1 = 1
 A_2 = repeat([1], p_conf)
 a_0 = - (a_1 + sum(A_2))    # Offset mean effect of other coefficients in linear predictor for M
-sigma_d = 0.2   # Residual SD for M
 
 b_1 = 1
 b_2 = 1
@@ -48,6 +47,7 @@ W_pred = repeat([1], p_conf)    # W=[1,1,1]
 
 X_dist = Normal(1, 1)
 W_dist = Normal(1, 1)
+
 
 
 
@@ -126,10 +126,7 @@ all_med_SEs = []
 
 
 
-    ## Get coefficients from models for M and Y
-    a_hat = coef(M_model)
-    b_hat = coef(Y_model)
-
+    ## Get relevant coefficients from models for M and Y
     a_x = a_hat[2]
     b_m = b_hat[2]
     b_x = b_hat[3]
