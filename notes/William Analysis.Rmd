@@ -25,7 +25,7 @@ In each setting, I generate $X$ and three confounders, $W = [W_1, W_2, W_3]$, ea
 
 In summary, we can setup each model with the same boilerplate code as follows:
 
-```{r, boilerplate, eval=FALSE}
+```{r, boilerplate, include=FALSE, cached=TRUE}
 # Note: This code chunk is not run here, but it is called and run at the start of every subsequent section. Any changes made here will be duplicated throughout the rest of the document.
 
 set.seed(1)
