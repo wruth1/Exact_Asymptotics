@@ -631,3 +631,286 @@ results = data.frame(n = all_Ns, Empirical = emp_SEs,
 kbl(results, format = "latex", booktabs = T, caption = "Summary of SE estimates for mediation effect under continuous response, continuous mediator, fixed-effects model \\label{tab:results_cont_bin_fix}")
 ```
 
+
+
+# Binary Response, Binary Mediator, Fixed-Effects
+
+For our last fixed-effect model, we now take both the response and mediator to be binary. I wrote some helper functions to compute relevant derivatives, all of which validated against a simple finite-difference approximation. See `Helpers.R`.
+
+```{r}
+source("../src/Helpers.R")
+```
+
+## Generate Data
+
+As in the previous case, we set intercepts so that the means of both linear predictors are at least approximately zero. Here however, no residuals are required.
+
+```{r}
+a_0 = 0
+b_0 = -0.5
+```
+
+We first demonstrate our analysis on a single dataset, then put this analysis inside a `for` loop. The first step is to set the sample size and generate some data. We use $\eta$ to denote the linear predictor for $M$, and $\zeta$ for the linear predictor of $Y$ without the $M$ term. That is, $\zeta = b_0 + b_2 X + W B_3$.
+
+
+```{r}
+n = all_Ns[1]
+
+X = rnorm(n, mean=0, sd=1)
+W = matrix(rnorm(n*p_conf, mean=0, sd=1), nrow = n, ncol = p_conf)
+
+# Generate M
+eta_vec = a_0 + a_1*X + W%*%A_2
+p_M_vec = expit(eta_vec)
+M = rbinom(n, size = 1, prob = p_M_vec)
+
+# Generate Y
+zeta_vec = b_0 + b_1*M + b_2*X + W%*%B_3
+p_Y_vec = expit(zeta_vec)
+Y = rbinom(n, size = 1, prob = p_Y_vec)
+```
+
+
+## Estimate Mediation Effect
+
+We now fit logistic regression models to predict $M$ and $Y$, and extract output that we will need later.
+
+```{r}
+M_data = data.frame(M, X, W1 = W[, 1], W2 = W[, 2], W3 = W[,3])
+M_model = glm(M ~ X + W1 + W2 + W3, data = M_data, family = binomial(link = "logit"))
+
+a_hat = summary(M_model)$coefficients[, 1]
+a_SE = summary(M_model)$coefficients[, 2]
+a_cov = vcov(M_model)
+
+
+Y_data = data.frame(Y, M, X, W1 = W[, 1], W2 = W[, 2], W3 = W[,3])
+Y_model = glm(Y ~ M + X + W1 + W2 + W3, data = Y_data, family = binomial(link = "logit"))
+
+b_hat = summary(Y_model)$coefficients[, 1]
+b_SE = summary(Y_model)$coefficients[, 2]
+b_cov = vcov(Y_model)
+```
+
+Next, we estimate the mediation effect. Note that, as in the contiuous outcome, binary mediator setting, our mediation effect depends on $X$ and $W$. We again use $X=0$ and $W=[1,1,1]$, although Samoilenko and Lefebvre (2023) use the sample means of these covariates.
+
+```{r}
+x_pred = 0
+W_pred = c(1,1,1)
+
+a_0_hat = a_hat[1]
+a_x_hat = a_hat[2]
+A_2_hat = a_hat[3:5]
+
+b_0_hat = b_hat[1]
+b_m_hat = b_hat[2]
+b_x_hat = b_hat[3]
+B_3_hat = b_hat[4:6]
+
+# Linear predictors
+eta_hat = a_0_hat + a_x_hat*x_pred + W_pred%*%A_2_hat
+zeta_hat = b_0_hat + b_x_hat * x_pred + W_pred %*% B_3_hat
+
+# Mediation effect
+## See Helpers.R for the function get_odds_ratio
+med_hat = get_odds_ratio(eta_hat, a_x, zeta_hat, b_x, b_m)
+```
+
+We now compute the gradient of the odds ratio and use the $\delta$-method to get the standard error.
+
+```{r}
+# Gradient of OR wrt regression coefficients
+grad_med = d_OR_d_theta(eta_hat, a_x_hat, zeta_hat, b_x_hat, b_m_hat, x_pred, W_pred)
+
+
+# Get asymptotic SE using delta method
+
+## Build joint covariance matrix of regression coefficients
+a_length = nrow(a_cov)
+b_length = nrow(b_cov)
+joint_cov = matrix(0, nrow = a_length + b_length, ncol = a_length +
+b_length)
+joint_cov[1:a_length, 1:a_length] = a_cov
+joint_cov[(a_length + 1):(a_length + b_length), (a_length + 1):(a_length +
+b_length)] = b_cov
+
+## Convert to asymptotic covariance matrix
+asymp_reg_cov = n * joint_cov
+
+## Pre- and post-multiply asymptotic covariance by gradient of transformation
+med_asymp_var = grad_med %*% asymp_reg_cov %*% grad_med
+
+## Get small-sample standard error
+med_asymp_SE = sqrt(med_asymp_var)
+med_SE = med_asymp_SE / sqrt(n)
+```
+
+Putting everything together, we have an estimated mediation effect of `r med_hat`, with an estimated SE of `r med_SE`.
+
+
+## Monte Carlo Study
+
+We now repeat the above analysis `r num_reps` times for each of various values of $n$. Values of $X$ and $W$ for which we compute the total effect are set at the beginning. We also re-run the boilerplate code (not shown).
+
+```{r, include=FALSE}
+<<boilerplate>>
+```
+
+```{r}
+# Values of X and W for which we compute the total effect
+x_pred = 0
+W_pred = c(1,1,1)
+
+# Values of a_0 and b_0
+a_0 = 0
+b_0 = -0.5
+```
+
+
+
+```{r, cache=TRUE, dependson=c("boilerplate")}
+
+for(j in seq_along(all_Ns)){
+  n = all_Ns[j]
+  
+  # Containers for output with this value of n
+  some_a_hats = list()
+  some_b_hats = list()
+  
+  some_a_SEs = list()
+  some_b_SEs = list()
+  
+  some_med_hats = list()
+  some_med_SEs = list()
+  
+  for(i in 1:num_reps){
+    # Generate data
+    X = rnorm(n, mean=0, sd=1)
+    W = matrix(rnorm(n*p_conf, mean=0, sd=1), nrow = n, ncol = p_conf)
+    
+    ## Generate M
+    eta_vec = a_0 + a_1*X + W%*%A_2
+    p_M_vec = expit(eta_vec)
+    M = rbinom(n, size = 1, prob = p_M_vec)
+    
+    ## Generate Y
+    zeta_vec = b_0 + b_1*M + b_2*X + W%*%B_3
+    p_Y_vec = expit(zeta_vec)
+    Y = rbinom(n, size = 1, prob = p_Y_vec)
+    
+    
+    # Fit models
+    
+    ## M
+    M_data = data.frame(M, X, W1 = W[,1], W2 = W[,2], W3 = W[,3])
+    M_model = glm(M ~ X + W1 + W2 + W3, data = M_data, family = binomial(link = "logit"))
+    
+    a_hat = summary(M_model)$coefficients[,1]
+    a_SE = summary(M_model)$coefficients[,2]
+    a_cov = vcov(M_model)
+    
+    some_a_hats[[i]] = a_hat
+    some_a_SEs[[i]] = a_SE
+    
+    
+    ## Y
+    Y_data = data.frame(Y, M, X, W1 = W[,1], W2 = W[,2], W3 = W[,3])
+    Y_model = glm(Y ~ M + X + W1 + W2 + W3, data = Y_data, family = binomial(link = "logit"))
+    
+    b_hat = summary(Y_model)$coefficients[,1]
+    b_SE = summary(Y_model)$coefficients[,2]
+    b_cov = vcov(Y_model)
+    
+    some_b_hats[[i]] = b_hat
+    some_b_SEs[[i]] = b_SE
+    
+    
+    
+    # Estimate mediation effect
+    
+    ## Extract coefficients
+    a_0_hat = a_hat[1]
+    a_x_hat = a_hat[2]
+    A_2_hat = a_hat[3:length(a_hat)]
+    
+    b_0_hat = b_hat[1]
+    b_m_hat = b_hat[2]
+    b_x_hat = b_hat[3]
+    B_3_hat = b_hat[4:length(b_hat)]
+    
+    ## Linear predictor for M
+    eta_hat = a_0_hat + a_x_hat*x_pred + W_pred%*%A_2_hat
+    zeta_hat = b_0_hat + b_x_hat * x_pred + W_pred %*% B_3_hat
+
+    # Mediation effect
+    ## See Helpers.R for the function get_odds_ratio
+    med_hat = get_odds_ratio(eta_hat, a_x, zeta_hat, b_x, b_m)
+    some_med_hats[[i]] = med_hat
+    
+    
+    
+    # Estimate SE
+    
+    ## Build joint covariance matrix
+    a_length = nrow(a_cov)
+    b_length = nrow(b_cov)
+    
+    joint_cov = matrix(0, nrow = a_length + b_length, ncol = a_length + b_length)
+    joint_cov[1:a_length, 1:a_length] = a_cov
+    joint_cov[(a_length+1):(a_length+b_length), (a_length+1):(a_length+b_length)] = b_cov
+    
+    
+    ## Compute gradient of mediation effect
+    grad_med = d_OR_d_theta(eta_hat, a_x_hat, zeta_hat, b_x_hat, b_m_hat, x_pred, W_pred)
+    
+    
+    ## Apply delta-method
+    asymp_reg_cov = n * joint_cov
+
+    med_asymp_var = grad_med %*% asymp_reg_cov %*% grad_med
+    med_asymp_SE = sqrt(med_asymp_var)
+    
+    med_SE = med_asymp_SE / sqrt(n)
+    some_med_SEs[[i]] = med_SE
+  }
+  
+  # Store output for current value of n
+  all_a_hats[[j]] = some_a_hats
+  all_b_hats[[j]] = some_b_hats
+  
+  all_a_SEs[[j]] = some_a_SEs
+  all_b_SEs[[j]] = some_b_SEs
+  
+  all_med_hats[[j]] = some_med_hats
+  all_med_SEs[[j]] = some_med_SEs
+}
+
+```
+
+We now process the output from our simulation and summarize the results in a table. We give the mean and median of the estimated standard errors, as well as their relative errors (in $\%$) as estimates of the empirical standard error. See Table \ref{tab:results_bin_bin_fix}.
+
+```{r}
+# Re-format output to be more useful. 
+data_med_hats = lapply(all_med_hats, unlist)
+data_med_SEs = lapply(all_med_SEs, unlist)
+
+# SD of estimates across Monte Carlo samples
+emp_SEs = sapply(data_med_hats, sd)
+
+# Summaries of estimated SEs (mean and median)
+mean_delta_SEs = sapply(data_med_SEs, mean)
+median_delta_SEs = sapply(data_med_SEs, median)
+
+
+# Combine into a table
+results = data.frame(n = all_Ns, Empirical = emp_SEs, 
+                     Mean = mean_delta_SEs, Median = median_delta_SEs,
+                     "Percent_Err_Mean" = 100*(mean_delta_SEs - emp_SEs)/emp_SEs,
+                     "Percent_Err_Median" = 100*(median_delta_SEs - emp_SEs)/emp_SEs)
+
+```
+
+```{r results="asis", echo=FALSE}
+## Print table
+kbl(results, format = "latex", booktabs = T, caption = "Summary of SE estimates for mediation effect under continuous response, continuous mediator, fixed-effects model \\label{tab:results_bin_bin_fix}")
+```
