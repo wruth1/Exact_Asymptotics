@@ -1,0 +1,78 @@
+\documentclass{article}
+
+\usepackage{amsmath, amssymb}
+\usepackage{xcolor}
+\usepackage{caption, subcaption}
+\usepackage{graphicx}
+\usepackage{bm}             % For bold math symbols
+
+\usepackage{natbib}
+\bibliographystyle{plainnat}
+
+
+\newcommand{\bG}{\mathbb{G}}
+\newcommand{\bF}{\mathbb{F}}
+\newcommand{\bP}{\mathbb{P}}
+\newcommand{\bE}{\mathbb{E}}
+\newcommand{\bV}{\mathbb{V}}
+
+\newcommand{\zdens}{\frac{e^{-z^2/2}}{\sqrt{2\pi}}}
+
+
+\title{Verification of SE Formulas for Mediation Analysis}
+
+\begin{document}
+
+\maketitle
+
+There is a short exchange in the American Journal of Epidemiology
+
+\section{The \citeauthor{Sam23} group}
+
+This group does essentially what B\&B are proposing with exact formulas and $\delta$-method standard errors. In particular, they avoid any requirement for rare events. They also do direct and indirect effects. However, I haven't seen any mention of random-effects/multilevel-models.
+
+
+\subsection{\citet{Sam18}}
+
+Gives exact formulas for direct and indirect mediation effects, as well as $\delta$-method standard errors. Binary outcome, binary mediator. No analytical SE when exposure-mediator interaction is present.
+
+\subsection{\citet{Sam21}}
+
+Extends analytical results of \citet{Sam18} to handle exposure-mediator interaction term in model for outcome.
+
+\subsection{\citet{Sam23}}
+
+As \citet{Sam18}, but with continuous mediator and binary response. No mixed-effects. Very nice simulation study.
+
+\subsection{\citet{Cau24}}
+
+Extends the work of \citet{Sam23} to case-control data.
+
+\section{Derivative-Based}
+
+Defines mediation effects in terms of derivatives. E.g. They define the indirect effect of $X$ on $Y$ as $(\partial \bE Y/ \partial \bE M) \cdot (\partial \bE M / \partial X)$, although that's not quite how they state it in the paper. This approach has had a small, but consistent following.
+
+\subsection{\citet{Mar24}}
+
+Incorporates random-effects in the derivative-based approach. Mostly does Bayesian inference. Mentions bootstrap.
+
+
+\section{GLMM UQ}
+
+\subsection{\citet{Zhe21}}
+
+Does joint uncertainty quantification for the parameters and random effects. Based on maximizing the Laplace Approximation to the marginal likelihood. Gives $\delta$-method SEs with gradients from automatic differentiation 
+
+
+\section{Applications}
+
+\subsection{Not Relevant}
+
+\citet{Bro22} talks about mediation analysis and includes models with mixed-effects, but the latter are only used for imputation.
+
+
+
+
+\bibliography{Lit_Review_Bib}
+
+\end{document}
