@@ -27,12 +27,22 @@
 
 \section{Summary and Future Work}
 
-We have a nice expression for the total effect of $X$ on $Y$. It would be nice to also do direct and indirect effects. These are given by the so-called ``mediation formula'' \citep{Pea12}. There is the whole business of linking our analysis to causal inference, but I'm happy to leave that for later. For now, we can just use the expressions in terms of conditional expectations which result when the counterfactual-based definition is identifiable\footnote{\citet{Pea12} points out that, in the absence of random-effects, his mediation effects can be estimated directly from a contingency table, with no parametric model. If there are confounders (as in our setting), this approach may break down due to the large number of possible values. \textcolor{red}{Uncertainty quantification? Extension to multilevel models?}}.
+As far as I can tell, nobody has done exact asymptotics for mixed-effects mediation analysis. I do want to do some more searching, but the recent literature (e.g., since 2020) presents exact formulas for mediation effects with $\delta$-method uncertainty quantification as novel. 
 
-\textcolor{red}{Revisit after I review the relevant paper some more.} There is an approach to UQ for GLMMs based on automatic differentiation. See Section \ref{sec:GLMM_UQ}. I'm still working to understand \citet{Zhe21}, but it would be helpful if one of you could look over this paper. For our current purposes, we could just use the automatic differentiation-based asymptotic standard errors for the GLMM parameters. Later, when we want to do uncertainty quantification for the predicted random effects, I think that this paper will be useful.
+Below, I have summarized a bunch of work on mediation analysis, roughly divided into sections. Section \ref{sec:Sam} covers work by Samoilenko, Lefebvre and others. Their work looks pretty close to what we're doing. They give exact formulas and $\delta$-method UQ, but no random effects. Section \ref{sec:deriv} defines mediation effects in terms of partial derivatives of the mean of $Y$ given $X$. They have done a bit with random effects, but only do Bayesian or bootstrap-based uncertainty quantification. Section \ref{sec:SEM} uses structural equation modelling (SEM) to do mediation analysis. I'm not very familiar with this methodology, but I tried to summarize what I could. Some of these papers do include random effects, but only seem to do continuous response and mediator. They make heavy use of the simple mediation formulas in the fully continuous setting, so uncertainty quantification is pretty basic. Finally, Section \ref{sec:other} is an assortment of papers. Highlights include \citet{Che21}, which gives definitions of direct and indirect effects which we can use, and \citet{Zhe21}, which uses automatic differentiation to get the full Hessian for GLMMs. \citeauthor{Zhe21} also do UQ for the predicted random effects, although I'm still working on understanding exactly how they do this.
+
+\subsection{What to do Next}
+
+Next week, my plan is to continue the literature search, focusing on SEMs, the UQ methodology proposed by \citet{Zhe21}, and also looking more widely to see if I've missed any other lines of work. It would be helpful for me if you could look at \citet{Zhe21} to see if you think it has merit. I'm also pretty shaky on SEMs, so it would be nice if you could look at \citet{Zig19} to see how it connects with our methodology.
+
+In terms of advancing our own work, I have finished translating my analysis into \texttt{R}, up to the binary response and mediator. My next steps in this direction for next week are to work out as much as I can for the binary/binary setting with mixed effects. This is going to involve computing the gradient of the mediation effect, and looking for whether \texttt{lme4} gives standard errors for the random effects' covariance parameters. If not, then I will look around for other sources.
+
+Once the mixed-effects case is done, I would like to extend our analysis to the direct and indirect effects. Formulas for these are given in \citet{Sam18} or \citet{Che21}. We should also consider interaction terms between the exposure and mediator in our model for the outcome. I understand that this interaction term arises from causal inference-based concerns, but I'm still fuzzy on the details. \citet{Sam21} extend their previous work on fixed-effects models to include interactions. We also need to extend all of our methods to handle predicted group-specific effects, although this makes the uncertainty quantification more challenging, both conceptually and computationally. See, e.g., \citet{Boo98,Flo19,Zig19}.
+
 
 
 \section{The \citeauthor{Sam23} group}
+\label{sec:Sam}
 
 This group does essentially what B\&B are proposing with exact formulas and $\delta$-method standard errors. In particular, they avoid any requirement for rare events. They also do direct and indirect effects. However, I haven't seen any mention of random-effects/multilevel-models.
 
@@ -57,6 +67,7 @@ Extends the work of \citet{Sam23} to case-control data.
 
 
 \section{Derivative-Based}
+\label{sec:deriv}
 
 Defines mediation effects in terms of derivatives. Originally proposed by \citet{Yu14}, and later extended to multilevel models by \citet{Yu20}. They use the name ``third-variable effect analysis''. Documented extensively in a book by \citet{Yu22}. Implemented in the \texttt{R} packages \texttt{mma} and \texttt{mlma} for single level and multilevel models respectively. The latter uses the bootstrap for UQ.
 
@@ -74,8 +85,11 @@ Defines mediation effects as partial derivatives. Does UQ by bootstrap or by a v
 Gives exact formulas for mediation effects and $\delta$-method SEs. Decomposes total mediation effect more finely than just direct and indirect (i.e. path-specific effects). No mixed-effects.
 
 \section{Structural Equation Modelling}
+\label{sec:SEM}
 
 There are a bunch of papers which use SEM to do mediation analysis. Many of them include multilevel/mixed-effects models. I'm not very familiar with SEM methodology, but it does seem to be connected with our work. See \citet{Val13} for a review and comparison with the causal-inference framework. Generally limited to linear models (i.e. continuous response and mediator), where the mediation effects' formulas are very simple. They seem to only focus on indirect effects\footnote{There is a short paragraph in \citet{Zit21} near the top of column 1 on page 532 which says ``the direct effect is only of little interest''. They don't give a reference for this.}.
+
+There does seem to be some work on applying mixed-effects methodology to SEMs. I'm not sure yet if this has made its way to the SEM-based mediation analysis literature. I'll look into this next week.
 
 \subsection{\citet{Zig19}}
 
@@ -89,16 +103,9 @@ Does mixed-effects mediation analysis based on SEMs. Only handles continuous out
 
 Does mediation analysis using structural equation models. Does UQ by bootstrap or based on the exact distribution of the product of two dependent normals \citep{Mac07}.
 
-\section{GLMM UQ}
-\label{sec:GLMM_UQ}
-
-\subsection{\citet{Zhe21}}
-
-Does joint uncertainty quantification for the parameters and random effects. Based on maximizing the Laplace Approximation to the marginal likelihood. Gives $\delta$-method SEs with gradients from automatic differentiation.
-
-Based on the \texttt{R} package \texttt{TMB}, which does automatic differentiation \citep{Kri16}. There is a related package, \texttt{glmmTMB}, which is specifically designed to apply automatic differentiation methods to GLMMs \citep{Bro17} (their paper focuses on zero-inflated count GLMMs, but their methodology applies more generally). \citet{Zhe21} raises some concerns about the two \texttt{TMB} packages, and presents a solution.
 
 \section{Others}
+\label{sec:other}
 
 \subsection{\citet{Ken03}}
 
@@ -106,6 +113,48 @@ Gives a simplistic definition of mediation effects for continuous models. Does U
 
 There is a book by \citet{Mac17} on mediation analysis, which has a whole chapter called ``Multilevel Mediation Models''. However, it is mostly based on the \citet{Ken03} and small extensions. 
 
+\subsection{\citet{Rit04}}
+
+Points-out that, in mixed-effects models, the regression structure for $Y$ only holds conditional on the random effects. Thus, it's hard to give a marginal interpretation of the regression coefficients. They give some conditions under which the conditional mean structure is preserved (in a particular sense) after marginalizing away the random effects. See, e.g., \citet{Neu91} for more discussion of the problem being addressed.
+
+I think I'm missing something here, because it seems obvious to me that there will be a difference between the parameters in an assumed regression model for the marginal mean of $Y$ and the conditional mean of $Y$ given the random effects. Regardless, I don't think this one is particularly relevant to us. We have a conditional regression model and don't make any effort to model the marginal mean of $Y$ using regression.
+
+
+\subsection{\citet{Van10}}
+
+Standard reference for mediation analysis with binary outcome. Focuses on the causal inference aspects of the problem. Makes heavy use of the ``rare outcome'' assumption. Resulting model is sufficiently simple that UQ is easy.
+
+
+\subsection{\citet{Pea12}}
+
+Presents the so-called ``mediation formula''. A set of identities for the total, direct and indirect mediation effects based on counterfactuals, but expressed in terms of conditional expectations. Effects are on risk-difference scale.
+
+
+\subsection{\citet{Nev17}}
+
+Does inference for mediation effects defined using the ``difference method''. Briefly, fit models to predict $Y$ using $X$ with or without $M$, then check how much the coefficient on $X$ changes. They apply their analysis to continuous, binary (log- and logit-link), and survival data (Cox model).
+
+Inference is done with the $\delta$-method. They need the covariance between coefficient estimates from different models (i.e. with and without $M$). Since this doesn't come directly from a standard analysis, they propose a ``data duplication algorithm''.
+
+No mixed effects. Not obviously relevant.
+
+
+\subsection{\citet{Che21}}
+
+Defines mediation effects (indirect and direct) as differences between transformed conditional expectations. This facilitates use with GLM link functions. Does continuous and binary outcome and mediator using GEEs. Does UQ with $\delta$-method. 
+
+Includes a Monte Carlo study comparing $\delta$-method with bootstrap. Finds that pretty large samples are required for $\delta$-method UQ to be accurate, although bootstrap works with somewhat smaller samples.
+
+No mixed-effects.
+
+Does $\delta$-method UQ for GLMs (more precisely, GEEs) with exact formulas for mediation effects. These mediation effects (indirect and direct effects) are defined as differences between transformed conditional expectations. 
+
+
+\subsection{\citet{Zhe21}}
+
+Does joint uncertainty quantification for the parameters and random effects. Based on maximizing the Laplace Approximation to the marginal likelihood. Gives $\delta$-method SEs with gradients from automatic differentiation.
+
+Based on the \texttt{R} package \texttt{TMB}, which does automatic differentiation \citep{Kri16}. There is a related package, \texttt{glmmTMB}, which is specifically designed to apply automatic differentiation methods to GLMMs \citep{Bro17} (their paper focuses on zero-inflated count GLMMs, but their methodology applies more generally). \citet{Zhe21} raises some concerns about the two \texttt{TMB} packages, and presents a solution. See \citet{Ska06} for more discussion of automatic differentiation in GLMM fitting.
 
 
 \bibliography{Lit_Review_Bib}
