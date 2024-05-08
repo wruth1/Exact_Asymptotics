@@ -25,7 +25,8 @@ In each setting, I generate $X$ and three confounders, $W = [W_1, W_2, W_3]$, ea
 
 In summary, we can setup each model with the same boilerplate code as follows:
 
-```{r, boilerplate, include=FALSE, cached=TRUE}
+```{r, boilerplate}
+# , cached=TRUE}
 # Note: This code chunk is not run here, but it is called and run at the start of every subsequent section. Any changes made here will be duplicated throughout the rest of the document.
 
 set.seed(1)
@@ -187,7 +188,8 @@ We now repeat the above analysis `r num_reps` times for each of various values o
 ```
 
 
-```{r, cache=TRUE, dependson=c("boilerplate")}
+```{r MC-cont-cont-fix, include=FALSE, cache=TRUE}
+# , dependson=c("boilerplate")}
 
 for(j in seq_along(all_Ns)){
   n = all_Ns[j]
@@ -328,13 +330,6 @@ results = data.frame(n = all_Ns, Empirical = emp_SEs,
 ## Print table
 kbl(results, format = "latex", booktabs = T, caption = "Summary of SE estimates for mediation effect under continuous response, continuous mediator, fixed-effects model \\label{tab:results_cont_cont_fix}")
 ```
-
-
-
-
-
-
-
 
 
 
@@ -486,7 +481,8 @@ W_pred = c(1,1,1)
 
 
 
-```{r, cache=TRUE, dependson=c("boilerplate")}
+```{r MC-cont-bin-fix, include=FALSE, cache=TRUE}
+# , dependson=c("boilerplate")}
 
 for(j in seq_along(all_Ns)){
   n = all_Ns[j]
@@ -768,7 +764,8 @@ b_0 = -0.5
 
 
 
-```{r, cache=TRUE, dependson=c("boilerplate")}
+```{r MC-bin-bin-fix, include=FALSE, cache=TRUE}
+# , dependson=c("boilerplate")}
 
 for(j in seq_along(all_Ns)){
   n = all_Ns[j]
@@ -840,15 +837,17 @@ for(j in seq_along(all_Ns)){
     
     ## Linear predictor for M
     eta_hat = a_0_hat + a_x_hat*x_pred + W_pred%*%A_2_hat
-    zeta_hat = b_0_hat + b_x_hat * x_pred + W_pred %*% B_3_hat
+    zeta_hat = b_0_hat + b_x_hat*x_pred + W_pred %*% B_3_hat
 
     # Mediation effect
     ## See Helpers.R for the function get_odds_ratio
-    med_hat = get_odds_ratio(eta_hat, a_x, zeta_hat, b_x, b_m)
+    med_hat = get_odds_ratio(eta_hat, a_x_hat, zeta_hat, b_x_hat, b_m_hat)
     some_med_hats[[i]] = med_hat
     
     
     
+    
+
     # Estimate SE
     
     ## Build joint covariance matrix

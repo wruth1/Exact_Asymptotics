@@ -47,6 +47,9 @@ W_pred = repeat([1], p_conf)    # W=[1,1,1]
 X_dist = Normal(1, 1)
 W_dist = Normal(1, 1)
 
+# X_dist = Normal(0, 1)
+# W_dist = Normal(0, 1)
+
 
 
 all_a_hats = []
@@ -160,6 +163,8 @@ all_med_SEs = []
 
     ### Derivatives of gamma wrt each parameter
     dOR_dt = d_OR_d_theta(eta_hat, a_x, zeta_hat, b_x, b_m, x_pred, W_pred)
+
+    norm(dOR_dt)
 
     ### Compute asymp var of gamma_hat
     asymp_var = dOR_dt' * reg_asymp_cov * dOR_dt
