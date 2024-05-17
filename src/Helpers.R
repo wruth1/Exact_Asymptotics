@@ -252,3 +252,165 @@ d_OR_d_theta <- function(eta, a_x, zeta, b_x, b_m, x_ref, W_ref) {
            d_OR_d_B3(eta, a_x, zeta, b_x, b_m, W_ref)))
 }
 
+
+
+
+
+
+
+
+
+######################################################
+#### Binary Response, Binary Mediator, Mixed-Effs ####
+######################################################
+
+
+phi = function(mu, sigma){
+  integrand = function(x){
+    A = 1 + exp(-mu - sigma*x)
+    B = dnorm(x)
+
+    return(B/A)
+  }
+
+  integral = integrate(integrand, -Inf, Inf)
+  # print(integral$message)
+  # print(integral$abs.error)
+
+  return(integral$value)
+}
+
+# Partial derivatives of phi
+# I validated these against a simple finite difference approximation
+
+## d phi / d mu
+d1_phi = function(mu, sigma){
+  integrand = function(x){
+    A = 1 + exp(-mu - sigma*x)
+    B = dnorm(x)
+    C = exp(-mu - sigma*x)
+
+    return(C*B/A^2)
+  }
+
+  return(integrate(integrand, -Inf, Inf)$value)
+}
+
+## d phi / d sigma
+d2_phi = function(mu, sigma){
+  integrand = function(x){
+    A = 1 + exp(-mu - sigma*x)
+    B = dnorm(x)
+    C = x * exp(-mu - sigma*x)
+
+    return(C*B/A^2)
+  }
+
+  return(integrate(integrand, -Inf, Inf)$value)
+}
+
+
+
+# Total mediation effect (on odds-ratio scale)
+Phi = function(a, b, a1, b1, b2, s1, s2, s3, s4){
+  (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4)))
+
+}
+
+
+
+# Derivatives of Phi (the total mediation effect)
+# All formulas have been validated against a simple finite difference approximation
+
+## Most of the formula comes directly from Maple. However, there is one piece of Maple syntax that I wasn't able to fully accommodate: expressing some phi derivatives as, e.g., diff(phi(a, s4), a). Specifically, Maple uses different syntax for the a-derivative of phi(a, g(b)) vs the a-derivative of phi(f(a), g(b)). I could fix the latter within Maple, but couldn't find a good solution for the former.
+## To solve this, I did some find/replace in VSCode using regular expressions with groups. One such pattern was: diff\(phi\(a, (\w+)\), a\) -> d1_phi(a, $1), which creates a "group" consisting of whatever is matched by the \w+, and inserts this group into the replacement string as indicated by the $1.
+
+
+## d Phi / d a
+dPhi_da = function(a, b, a1, b1, b2, s1, s2, s3, s4){
+  (phi(b + b1 + b2, s1) * d1_phi(a + a1, s2) - phi(b + b2, s1) * d1_phi(a + a1, s2)) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) - (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) ^ 2 * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) * d1_phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2)) + (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) * d1_phi(a, s4) * (phi(b, s3) - phi(b + b1, s3)) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) - (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) ^ 2 * (phi(b + b1, s3) * d1_phi(a, s3) - phi(b, s3) * d1_phi(a, s4))
+}
+
+
+## d Phi / d b
+dPhi_db = function(a, b, a1, b1, b2, s1, s2, s3, s4){
+  (d1_phi(b + b1 + b2, s1) * phi(a + a1, s2) + d1_phi(b + b2, s1) * (1 - phi(a + a1, s2))) * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) + (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) * (-d1_phi(b, s3) + phi(a, s4) * (d1_phi(b, s3) - d1_phi(b + b1, s3))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) - (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) ^ 2 / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) * (-d1_phi(b + b2, s1) + phi(a + a1, s2) * (d1_phi(b + b2, s1) - d1_phi(b + b1 + b2, s2))) - (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) ^ 2 * (d1_phi(b + b1, s3) * phi(a, s3) + d1_phi(b, s3) * (1 - phi(a, s4)))
+}
+
+
+## d Phi / d a1
+dPhi_da1 = function(a, b, a1, b1, b2, s1, s2, s3, s4){
+  (phi(b + b1 + b2, s1) * d1_phi(a + a1, s2) - phi(b + b2, s1) * d1_phi(a + a1, s2)) * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) - (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) ^ 2 / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) * d1_phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))
+}
+
+
+## d Phi / d b1
+dPhi_db1 = function(a, b, a1, b1, b2, s1, s2, s3, s4){
+  d1_phi(b + b1 + b2, s1) * phi(a + a1, s2) * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) - (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) * phi(a, s4) * d1_phi(b + b1, s3) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) + (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) ^ 2 / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) * phi(a + a1, s2) * d1_phi(b + b1 + b2, s2) - (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) ^ 2 * d1_phi(b + b1, s3) * phi(a, s3)
+}
+
+
+## d Phi / d b2
+dPhi_db2 = function(a, b, a1, b1, b2, s1, s2, s3, s4){
+  (d1_phi(b + b1 + b2, s1) * phi(a + a1, s2) + d1_phi(b + b2, s1) * (1 - phi(a + a1, s2))) * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) - (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) ^ 2 / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) * (-d1_phi(b + b2, s1) + phi(a + a1, s2) * (d1_phi(b + b2, s1) - d1_phi(b + b1 + b2, s2)))
+}
+
+
+## d Phi / d s1
+dPhi_ds1 = function(a, b, a1, b1, b2, s1, s2, s3, s4){
+  (d2_phi(b + b1 + b2, s1) * phi(a + a1, s2) + d2_phi(b + b2, s1) * (1 - phi(a + a1, s2))) * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) - (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) ^ 2 / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) * (-d2_phi(b + b2, s1) + phi(a + a1, s2) * d2_phi(b + b2, s1))
+}
+
+
+## d Phi / d s2
+dPhi_ds2 = function(a, b, a1, b1, b2, s1, s2, s3, s4){
+  (phi(b + b1 + b2, s1) * d2_phi(a + a1, s2) - phi(b + b2, s1) * d2_phi(a + a1, s2)) * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) - (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) ^ 2 / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) * (d2_phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2)) - phi(a + a1, s2) * d2_phi(b + b1 + b2, s2))
+}
+
+
+## d Phi / d s3
+dPhi_ds3 = function(a, b, a1, b1, b2, s1, s2, s3, s4){
+  (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) * (-d2_phi(b, s3) + phi(a, s4) * (d2_phi(b, s3) - d2_phi(b + b1, s3))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) - (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) ^ 2 * (d2_phi(b + b1, s3) * phi(a, s3) + phi(b + b1, s3) * d2_phi(a, s3) + d2_phi(b, s3) * (1 - phi(a, s4)))
+}
+
+
+## d Phi / d s4
+dPhi_ds4 = function(a, b, a1, b1, b2, s1, s2, s3, s4){
+  (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) * d2_phi(a, s4) * (phi(b, s3) - phi(b + b1, s3)) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) + (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) ^ 2 * phi(b, s3) * d2_phi(a, s4)
+}
+
+
+
+
+# Full gradient of Phi
+grad_Phi = function(a, b, a1, b1, b2, s1, s2, s3, s4){
+  return(c(dPhi_da(a, b, a1, b1, b2, s1, s2, s3, s4),
+           dPhi_db(a, b, a1, b1, b2, s1, s2, s3, s4),
+           dPhi_da1(a, b, a1, b1, b2, s1, s2, s3, s4),
+           dPhi_db1(a, b, a1, b1, b2, s1, s2, s3, s4),
+           dPhi_db2(a, b, a1, b1, b2, s1, s2, s3, s4),
+           dPhi_ds1(a, b, a1, b1, b2, s1, s2, s3, s4),
+           dPhi_ds2(a, b, a1, b1, b2, s1, s2, s3, s4),
+           dPhi_ds3(a, b, a1, b1, b2, s1, s2, s3, s4),
+           dPhi_ds4(a, b, a1, b1, b2, s1, s2, s3, s4)))
+}
+
+
+# Finite difference verification
+a = 1
+b = 1
+a1 = 1
+b1 = 1
+b2 = 1
+s1 = 0.5
+s2 = 0.5
+s3 = 0.5
+s4 = 0.5
+
+e = 0.000001
+
+(Phi(a, b, a1, b1, b2, s1, s2, s3, s4 + e) - Phi(a, b, a1, b1, b2, s1, s2, s3, s4)) / e
+dPhi_ds4(a, b, a1, b1, b2, s1, s2, s3, s4)
+
+
+grad_Phi(a, b, a1, b1, b2, s1, s2, s3, s4)

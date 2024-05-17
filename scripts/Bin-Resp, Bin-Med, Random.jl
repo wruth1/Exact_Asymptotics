@@ -101,7 +101,7 @@ all_med_SEs = []
     all_zeta_vecs_fixed = [b_0 .+ b_1 .* M .+ b_2 .* X .+ W * B_3 for (M, X, W) in zip(all_Ms, all_Xs, all_Ws)]
 
     ### Add random effects
-    all_zeta_vecs = [zeta_vec_fixed .+ rand(Normal(0, sigma_b_0), n) .+ rand(Normal(0, sigma_b_2), n) .* X for (zeta_vec_fixed, X) in zip(all_zeta_vecs_fixed, X)]
+    all_zeta_vecs = [zeta_vec_fixed .+ rand(Normal(0, sigma_b_0), n) .+ rand(Normal(0, sigma_b_2), n) .* X for (zeta_vec_fixed, X) in zip(all_zeta_vecs_fixed, all_Xs)]
     
     ### Get probabilities
     all_p_Y_vecs = [expit.(zeta_vec) for zeta_vec in all_zeta_vecs]
@@ -126,7 +126,7 @@ all_med_SEs = []
         M_data[!,Symbol("W$p")] = W[:, p]
     end
 
-    ### This code tries to automate construction of the formula. I ran into issues specifying the random effects
+    ### This commented code tries to automate construction of the formula. I ran into issues specifying the random effects
     # M_formula_fix = term(:M) ~ sum(term.(names(M_data, Not(:M, :group))))
     # RE_terms = term(1) + term(:X)
     # group_term = term(:group)
@@ -136,7 +136,7 @@ all_med_SEs = []
 
     M_model = fit(MixedModel, M_formula, M_data, Bernoulli(), verbose=false, progress=false)
 
-    M_model.InterceptTerm
+    # M_model.InterceptTerm
 
     a_hat = coef(M_model)
     a_SE = stderror(M_model)

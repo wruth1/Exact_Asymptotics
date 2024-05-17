@@ -109,11 +109,13 @@ Fourth, I point out that the definition of $\phi(\mu, \sigma)$ is pretty clever.
 
 Now onto some computation.
 
-\subsection{UQ for GLMM Parameters}
+The approximate covariance matrix of the GLMM parameter estimates can be obtained directly from a fitted \texttt{lme4} object using the \texttt{merDeriv} package in \texttt{R}. This saves all the work I was starting in the following subsection. Please disregard.
+
+\subsection{UQ for GLMM Parameters (Old)}
 
 Immediately I've encountered a problem. The standard software reports standard errors for the fixed effects' estimators, but not for the random effects' variance parameters\footnote{I'm going to be a bit sloppy here and refer to the standard error of a parameter. By this, I mean the standard error of our estimator for that parameter. It's just getting to be too much typing to always write the latter.}. I guess I'm going to have to work this out myself.
 
-To this end, I need the Hessian of the observed data (log) likelihood. There are tricks from the EM algorithm literature for doing this, but I think our problem is simple enough that I can just reduce it to a small-ish number of one-dimensional integrals. To start, recall the formula Bruno gives for $\bP(Y=1 | X=x, \mathbf{W}=\mathbf{w}) =: \bP_1$. Specifically, he expresses this quantity in terms of the $\phi$ function evaluated at four different arguments. Thus, if I have the Hessian of $\phi$, I can compute the Hessian of $\bP_1$ (and $\bP_0$), which in-turn gives me the Hessian of the log-likelihood based on a single point. 
+To this end, I need the Hessian of the observed data (log) likelihood. There are tricks from the EM algorithm literature for doing this, but I think our problem is simple enough that I can just reduce it to a small-ish number of one-dimensional integrals. To start, recall the formula Bruno gives for $\bP(Y=1 | X=x, \mathbf{W}=\mathbf{w}) =: P_1$ (similar for $P_0$). Specifically, he expresses this quantity in terms of the $\phi$ function evaluated at four different arguments. Thus, if I have the Hessian of $\phi$, I can compute the Hessian of $P_1$ (and $P_0$), which in-turn gives me the Hessian of the log-likelihood based on a single point. 
 
 This actually isn't quite what I need to do. In order to incorporate grouping structure, I need a generalization of the $\phi$ function, whose integrand contains a product of terms with the form $(1 + \exp(-\mu_i - \sigma_i z))^{-1}$, with $i$ ranging over all points in a single group. More formally, write
 %
@@ -149,6 +151,14 @@ Before working harder on the derivatives of $\Phi$, I want to say exactly what I
     &\left.\left[ \prod_{m_i = 0} \bP(M=0 |V, X=x_i, W=w_i)\right]\right)\\
     &= 
 \end{align}
+
+\subsection{UQ for Mediation Effects}
+
+Following Section 2.2 of B \& B's document, we have an expression for the mediation effect, $\Psi$, in terms of a small number of integrals, $\phi$. Each of these integrals is univariate, and can thus be computed accurately using quadrature. As for uncertainty quantification, we still need to compute the partial derivative of $\Psi$ wrt each of its arguments. This shouldn't be too hard to do in Maple (hopefully). I will probably need to leave $\phi$ undefined, and get Maple to return an answer in terms of the partial derivatives of $\phi$.
+
+Note that $\Psi$ depends explicitly on a combination of model parameters and transformations thereof. In particular, the functions $\sigma_U$ and $\sigma_V$ depend implicitly on the mixed effects' covariance matrices. Conveniently, B \& B have worked out the gradients of $\sigma_U$ and $\sigma_V$ wrt the model parameters. They're messy, but ultimately code-able.
+
+\textcolor{red}{As of Friday, May 17, I have coded the gradient of $\Phi$. Next I need to do UQ for each argument of $\Phi$ (e.g., $\sigma_V(x+1)$), then I can apply the $\delta$-method.}
 
 
 
