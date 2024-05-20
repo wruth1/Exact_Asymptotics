@@ -139,7 +139,7 @@ Does mediation analysis using structural equation models. Does UQ by bootstrap o
 \section{The Imai Group}
 \label{sec:Imai}
 
-This group focuses mainly on the assumptions required to link regression-based mediation analysis with causal inference. They give definitions of mediation effects which closely resemble the ``mediation formula'' \citep{Pea12}, but only for differences of conditional expectation (i.e. the ``risk-difference scale''; see also \citealp{Sam23}). Their approach to UQ is very computational. They recommend either the bootstrap or a simulation-based approach outlined in \citet{Kin00}. Briefly, simulate parameters from their fitted sampling distributions, then evaluate the quantity of interest on each sample and observe the resulting distribution. I think this is connected to empirical Bayes methodology, but I haven't looked into it extensively.
+This group focuses mainly on the assumptions required to link regression-based mediation analysis with causal inference. They give definitions of mediation effects which closely resemble the ``mediation formula'' \citep{Pea12}, but only for differences of conditional expectation (i.e. the ``risk-difference scale''; see also \citealp{Sam23}). Their approach to UQ is very computational. They recommend either the bootstrap or a simulation-based approach outlined in \citet{Kin00}. Briefly, simulate parameters from their fitted sampling distributions, then evaluate the quantity of interest on each sample and observe the resulting distribution. I think this is connected to empirical Bayes methodology, but I haven't looked into it extensively. They use the name ``quasi-Bayesian confidence intervals'' in their \texttt{R} package. 
 
 Their methods are implemented in the \texttt{R} package \texttt{mediation} \citep{Tin14}. They can handle mixed-effects models, including prediction of group-level effects.
 
@@ -168,6 +168,17 @@ Very similar to \citet{Ima10I} and \citet{Ima10II}. Focuses more on causal infer
 This paper overviews the \texttt{mediation} package, which implements the methods developed by this group. Can handle GLMMs, but only operates on differences in the expected value of the outcome (i.e. risk-difference scale for binary outcome). Does UQ for parameters \textbf{and predicted random effects}, but doesn't go into detail on how. I'm guessing that it just follows the Monte Carlo method given by \citet{Ima10I}.
 
 Package last updated 2019-10-08
+
+\subsubsection{UQ for Group-Level Effects}
+
+The \citet{Tin14} paper discusses inference for predicted group-level effects, but doesn't go into detail. As far as I can tell, this is also the only paper from the Imai group which discusses multilevel mediation analysis. Worse still, they give very few references.
+
+After digging into the source code for the \texttt{mediation} package, I found what they do. First, they get predicted group-wise random effects from \texttt{lme4}. Second, it turns out that \texttt{lme4} can give a conditional covariance matrix for the random effects ``conditional on the estimates of the model parameters and on the data''. For now, just note that the full covariance matrix of the random effects is block diagonal, with one block per group. The \texttt{mediation} package uses these group-wise conditional covariance matrices, together with the predicted group-wise means, and simulates random effects for each group (independently, from normal distributions with the corresponding moments). The package then proceeds with its ``quasi-Bayesian'' inference. 
+
+Just a brief note on the conditional covariances given by \texttt{lme4}. Initially, when I was reading this portion of the documentation, I got excited that we might not need the \texttt{merDeriv} package to get standard errors for the random effects' covariance parameters. That's definitely not what I found. These are standard errors for the predicted random effects (conditional on the observed data), not standard errors for the estimators of any model parameters. In particular, the former can be thought of as $K$ separate covariance matrices, one per group, whereas the latter is a single matrix representing estimation uncertainty based on the entire dataset. 
+
+Unfortunately, no references are given in the \texttt{lme4} documentation, but it is fairly clear what is being done. The predicted random effect within a group is the mode of the conditional distribution of the random effects given the observed data from that group (alternatively, the mean; although \texttt{lme4} uses the mode). The prediction standard error given by \texttt{lme4} is the covariance of this same conditional distribution. 
+
 
 \section{The \texttt{SPSS} Macro \texttt{MLmed}}
 \label{sec:MLmed}
@@ -202,6 +213,10 @@ It looks like their variables are all ordinal (1-6 or 1-8 Likert scale). I'm not
 \subsection{\citet{Hwa12}}
 
 Follows an earlier edition of \citet{Mac17}, as well as the very early work of \citet{Bar86}. As in \citet{Ara21}, variables are ordinal/Likert. Analysis is done in \texttt{SPSS}, although few details are given. Note that this work was published before the \texttt{SPSS} macro of \citet{Roc19}.
+
+\subsection{\citet{Rij21}}
+
+Review of applied papers using mediation analysis. 
 
 
 \section{Others}
