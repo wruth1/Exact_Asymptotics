@@ -29,6 +29,11 @@
 
 \section{Summary and Future Work}
 
+\subsection{May 23}
+
+A thought on how to frame the definition of mediation effects on different scales: the mediation formula of \citet{Pea12} identifies causal direct/indirect effects with specific functions of conditional expectations of the outcome and mediator. This makes it natural to work on the risk-difference scale, as done by the Imai group (see Section \ref{sec:Imai}). However, if we prefer the risk-ratio or odds-ratio, we can just express our target quantities in terms of the functions identified by \citet{Pea12}. There may or may not be simplification that leads to interpretable formulas, but that's not the point. You can define mediation effects on whatever scale you like, then we will give you estimates and standard errors, irrespective of how messy the formulas may be (they will all be hidden in the code anyway).
+
+
 \subsection{May 16}
 
 This week, I added work by Imai and colleagues, as well as a few general references. See Section \ref{sec:Imai} for the Imai group. There is also a method proposed by \citet{Lan12} based on inverse probability weighting to estimate unobserved counterfactuals. Both of these methods are included in the extensive Monte Carlo study of \citet{Sam23} and found to be comparable to inference for mediation effects based on the $\delta$-method. However, the method of \citet{Ima10I} is computationally intensive, and that of \citet{Lan12} is quite different from our approach of combining estimates from two regression models.
@@ -216,7 +221,7 @@ Follows an earlier edition of \citet{Mac17}, as well as the very early work of \
 
 \subsection{\citet{Rij21}}
 
-Review of applied papers using mediation analysis. 
+Review of applied papers using mediation analysis. \textcolor{red}{Read and document this!}
 
 
 \section{Others}
@@ -254,7 +259,15 @@ Presents the so-called ``mediation formula''. A set of identities for the total,
 
 Proposes estimating mediation effects using inverse probability weighting. Duplicates the observed data and uses weighting to estimate unobserved counterfactual outcomes. Referred to as the ``weighting method''. Does give analytical (asymptotic) standard errors based on the sandwich variance estimator that arises from the theory of generalized estimating equations. See their ``Web Appendix 3'' for more details. They also suggest using the bootstrap. 
 
-Implemented in the \texttt{R} package \texttt{medflex} \citep{Ste17}.
+Implemented in the \texttt{R} package \texttt{medflex} \citep{Ste17} alongside the imputation method of \citet{Van12}.
+
+\subsection{\citet{Van12}}
+
+Proposes estimating mediation effects using regression-based imputation. Recall that the indirect and direct mediation effects depend on unobservable nested counterfactuals of the form $\phi(x, x') := Y(x, M(x'))$, where $x \neq x'$. \citet{Van12} proposes to estimate these counterfactuals directly by first fitting a regression model for the dependence of $\phi$ on $x$ and $x'$ using configurations of these covariates (i.e. the exposure) observed in the data. We then use this regression model to predict the value of $\phi$ at unobserved configurations.
+
+Caution: This whole method is based on extrapolating from a regression model into a region where we, by definition, have no information. The usual warnings apply, both philosophical and practical (e.g. don't include high-order polynomial terms in your regression model).
+
+Implemented in the \texttt{R} package \texttt{medflex} \citep{Ste17} alongside the weighting method of \citet{Lan12}.
 
 \subsection{\citet{Nev17}}
 
