@@ -31,7 +31,20 @@
 
 \subsection{May 23}
 
+I'm just finishing-up my code for the binary response, binary mediator, mixed effects case. My analysis is running, but the output doesn't look right so I need to do some debugging. 
+
+I now better understand the uncertainty quantification method used by the Imai group. See Section \ref{sec:Imai_UQ} for details. Briefly, they do a Monte Carlo analog of the $\delta$-method. If the target of inference is a function of some model parameters, they start by estimating the sampling distribution of our estimator for those model parameters. They then simulate from this estimated sampling distribution and evaluate the function of interest on each simulated observation. This produces a sample from the pushforward measure induced on the target of inference by our estimated sampling distribution for the model parameters. It's not completely clear to me how they generate confidence intervals from the Monte Carlo samples, but they call their method ``quasi-Bayesian'', so I suspect it's just percentile intervals. 
+
+Incidentally, if we could do exact (i.e. non-asymptotic) distribution theory for the model parameter (e.g. ordinary linear regression), then Imai's method is equivalent to the parametric bootstrap. They just skip the generation of datasets and work directly with the bootstrap distribution of the estimator.
+
 A thought on how to frame the definition of mediation effects on different scales: the mediation formula of \citet{Pea12} identifies causal direct/indirect effects with specific functions of conditional expectations of the outcome and mediator. This makes it natural to work on the risk-difference scale, as done by the Imai group (see Section \ref{sec:Imai}). However, if we prefer the risk-ratio or odds-ratio, we can just express our target quantities in terms of the functions identified by \citet{Pea12}. There may or may not be simplification that leads to interpretable formulas, but that's not the point. You can define mediation effects on whatever scale you like, then we will give you estimates and standard errors, irrespective of how messy the formulas may be (they will all be hidden in the code anyway).
+
+\subsubsection{What to do Next}
+
+I think that at this week's meeting, we should plan out what we want to put in the paper. I propose that we do total, direct and indirect effects on risk difference, risk ratio and odds ratio scales, but stick to fixed-effects (i.e. avoid predicting group-level effects). Based on other work in the literature. I think that's enough for a paper, provided that we do a nice Monte Carlo study comparing our UQ with other methods, such as Imai's quasi-Bayesian method, the weighting method of \citet{Lan12} and the imputation method of \citet{Van12}. All of these methods are implemented to varying extents in \texttt{R} packages, \texttt{mediation} for the former and \texttt{medflex} for the latter two.
+
+Prediction of group-level effects barely comes up in the literature. The \texttt{mediation} package from Imai's group does it, but with very little discussion. They give a few sentences in the package vignette saying they can do group-level effect prediction, but don't give any further discussion or references. I had to read their source code to know what method they're using. Prediction of group-level mediation effects seems like an untapped area that we are well-positioned to develop. 
+
 
 
 \subsection{May 16}
@@ -175,6 +188,7 @@ This paper overviews the \texttt{mediation} package, which implements the method
 Package last updated 2019-10-08
 
 \subsubsection{UQ for Group-Level Effects}
+\ref{sec:Imai_UQ}
 
 The \citet{Tin14} paper discusses inference for predicted group-level effects, but doesn't go into detail. As far as I can tell, this is also the only paper from the Imai group which discusses multilevel mediation analysis. Worse still, they give very few references.
 
