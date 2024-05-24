@@ -312,6 +312,9 @@ d2_phi = function(mu, sigma){
 
 
 # Total mediation effect (on odds-ratio scale)
+## In my notation: Phi(eta, zeta, a_x, b_m, b_x, sigma_U(x+1), sigma_V(x+1), sigma_U(x), sigma_V(x))
+## Note: eta, a and U come from the M-model, while zeta, b and V come from the Y-model
+## eta and zeta are linear predictors
 Phi = function(a, b, a1, b1, b2, s1, s2, s3, s4){
   (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4)))
 
@@ -396,21 +399,425 @@ grad_Phi = function(a, b, a1, b1, b2, s1, s2, s3, s4){
 }
 
 
-# Finite difference verification
-a = 1
-b = 1
-a1 = 1
-b1 = 1
-b2 = 1
-s1 = 0.5
-s2 = 0.5
-s3 = 0.5
-s4 = 0.5
+# # Finite difference verification
+# a = 1
+# b = 1
+# a1 = 1
+# b1 = 1
+# b2 = 1
+# s1 = 0.5
+# s2 = 0.5
+# s3 = 0.5
+# s4 = 0.5
+#
+# e = 0.000001
+#
+# (Phi(a, b, a1, b1, b2, s1, s2, s3, s4 + e) - Phi(a, b, a1, b1, b2, s1, s2, s3, s4)) / e
+# dPhi_ds4(a, b, a1, b1, b2, s1, s2, s3, s4)
+#
+#
+# grad_Phi(a, b, a1, b1, b2, s1, s2, s3, s4)
 
-e = 0.000001
-
-(Phi(a, b, a1, b1, b2, s1, s2, s3, s4 + e) - Phi(a, b, a1, b1, b2, s1, s2, s3, s4)) / e
-dPhi_ds4(a, b, a1, b1, b2, s1, s2, s3, s4)
 
 
-grad_Phi(a, b, a1, b1, b2, s1, s2, s3, s4)
+# Transform from GLMM parameters to arguments of Phi
+## Note: This transformation also depends on x and W, although we will not worry about the gradient wrt these.
+
+xi = function(a, theta, b, gamma, x, W){
+
+  # Extract fixed effects
+  a_0 = a[1]
+  a_x = a[2]
+  A_2 = a[3:5]
+
+  b_0 = b[1]
+  b_m = b[2]
+  b_x = b[3]
+  B_3 = b[4:6]
+
+
+  # Compute linear predictors
+  eta = as.numeric(a_0 + a_x * x + W %*% A_2)
+  zeta = as.numeric(b_0 + b_x * x + W %*% B_3)
+
+
+  # Random effects covariances
+  s_M_0 = theta[1]
+  s_M_x = theta[2]
+  rho_M = theta[3]
+
+  s_Y_0 = gamma[1]
+  s_Y_x = gamma[2]
+  rho_Y = gamma[3]
+
+
+  # Sigma functions
+  sigma_M1 = sigma_fun(x, s_M_0, s_M_x, rho_M)
+  sigma_M2 = sigma_fun(x + 1, s_M_0, s_M_x, rho_M)
+
+  sigma_Y1 = sigma_fun(x, s_Y_0, s_Y_x, rho_Y)
+  sigma_Y2 = sigma_fun(x + 1, s_Y_0, s_Y_x, rho_Y)
+
+  # Return vector of arguments to Phi
+  return(c(eta, zeta, a_x, b_m, b_x, sigma_M2, sigma_Y2, sigma_M1, sigma_Y1))
+}
+
+
+# Gradient of xi
+# Specifically, we need the gradient of this transformation so we can use the delta-method. Rather than giving each partial its own function, I will compute the gradient of each coordinate in the range.
+# Notation: a, theta, b, gamma -> eta, zeta, a_x, b_m, b_x, s_U2, s_V2, s_U1, s_V1, where
+# a = (a_0, a_x, A_2) is the fixed effects for M
+# theta = (theta_1, ..., theta_q) is the random effects for M
+# b = (b_0, b_m, b_x, B_3) is the fixed effects for Y
+# gamma = (gamma_1, ..., gamma_p) is the random effects for Y
+#
+# eta is the linear predictor for M
+# zeta is the linear predictor for Y
+# a_x, b_m and b_x are fixed effects
+# s_U2 = sigma_U(x+1), s_V2 = sigma_V(x+1), s_U1 = sigma_U(x), s_V1 = sigma_V(x). See the notes from B & B for details
+## All these gradients have been validated against a finite difference approximation
+
+grad_eta = function(a, theta, b, gamma, x, W){
+  q_M = length(theta)
+  q_Y = length(gamma)
+  len_W = length(W)
+  output = c(1,
+             x,
+             W,
+             rep(0, times=q_M),   # theta
+             rep(0, times=3 + len_W),  # b_0, b_m, b_x, B_3
+             rep(0, times = q_Y))  # gamma
+}
+
+grad_zeta = function(a, theta, b, gamma, x, W){
+  q_M = length(theta)
+  q_Y = length(gamma)
+  len_W = length(W)
+  output = c(rep(0, times=2 + len_W),  # a_0, a_x, A_2
+             rep(0, times = q_M),   # theta
+             1,  # beta_0
+             0,  # beta_M
+             x,  # beta_X
+             W,  # B_3
+             rep(0, times = q_Y))  # gamma
+}
+
+grad_a_x = function(a, theta, b, gamma, x, W){
+  q_M = length(theta)
+  q_Y = length(gamma)
+  len_W = length(W)
+  output = c(0, # a_0
+             1, #a_x
+             rep(0, times = len_W),  # A_2
+             rep(0, times = q_M),   # theta
+             rep(0, times=3),  # b_0, b_m, b_x
+             rep(0, times = len_W),  # B_3
+             rep(0, times = q_Y))  # gamma
+}
+
+grad_b_m = function(a, theta, b, gamma, x, W){
+  q_M = length(theta)
+  q_Y = length(gamma)
+  len_W = length(W)
+  output = c(rep(0, times=2 + len_W),  # a_0, a_x, A_2
+             rep(0, times = q_M),   # theta
+             0, # b_0
+             1, # b_m
+             0, # b_x
+             rep(0, times = len_W),  # B_3
+             rep(0, times = q_Y))  # gamma
+}
+
+grad_b_x = function(a, theta, b, gamma, x, W){
+  q_M = length(theta)
+  q_Y = length(gamma)
+  len_W = length(W)
+  output = c(rep(0, times=2 + len_W),  # a_0, a_x, A_2
+             rep(0, times = q_M),   # theta
+             0, # b_0
+             0, # b_m
+             1, # b_x
+             rep(0, times = len_W),  # B_3
+             rep(0, times = q_Y))  # gamma
+}
+
+
+
+
+grad_b_m = function(a, theta, b, gamma, x, W){
+  q_M = length(theta)
+  q_Y = length(gamma)
+  len_W = length(W)
+  output = c(rep(0, times=2 + len_W),  # a_0, a_x, A_2
+             rep(0, times = q_M),   # theta
+             0, # b_0
+             1, # b_m
+             0, # b_x
+             rep(0, times = len_W),  # B_3
+             rep(0, times = q_Y))  # gamma
+}
+
+
+
+
+# Dispersion parameters
+
+## Computes the sigma function, e.g., sigma_u(x)
+sigma_fun = function(x, s_0, s_x, rho){
+  A = s_0^2
+  B = 2 * x * rho * s_0 * s_x
+  C = x^2 * s_x^2
+
+  return(sqrt(A + B + C))
+}
+
+## Partial derivatives of sigma_fun
+### All have been validated against a simple finite difference approximation
+
+d_sigma_d_s0 = function(x, s_0, s_x, rho){
+  return((s_0 + x * rho * s_x) / sigma_fun(x, s_0, s_x, rho))
+}
+
+d_sigma_d_sx = function(x, s_0, s_x, rho){
+  return((s_x * x^2 + x * rho * s_0) / sigma_fun(x, s_0, s_x, rho))
+}
+
+d_sigma_d_rho = function(x, s_0, s_x, rho){
+  return((s_0 * s_x * x) / sigma_fun(x, s_0, s_x, rho))
+}
+
+
+
+# x = 1
+# s_0 = 2
+# s_x = 3
+# rho = 4
+#
+# e = 0.000001
+#
+# (sigma_fun(x+1, s_0 + e, s_x, rho) - sigma_fun(x+1, s_0, s_x, rho)) / e
+# d_sigma_d_s0(x+1, s_0, s_x, rho)
+#
+# d_sigma_d_rho(x+1, s_0, s_x, rho)
+
+
+
+
+
+
+
+## Gradient of sigma_U(x+1)
+grad_s_U2 = function(a, theta, b, gamma, x, W){
+  # Note: All ambiguous parameters in this function are for the M model. This affects s_0, s_x and rho
+
+  s_0 = theta[1]
+  s_x = theta[2]
+  rho = theta[3]
+
+  q_M = length(theta)
+  q_Y = length(gamma)
+  len_W = length(W)
+
+  # Compute partials
+  d_s_U2_d_s0 = d_sigma_d_s0(x+1, s_0, s_x, rho)
+  d_s_U2_d_sx = d_sigma_d_sx(x+1, s_0, s_x, rho)
+  d_s_U2_d_rho = d_sigma_d_rho(x+1, s_0, s_x, rho)
+
+  # Stack partials
+  d_s_U2_d_theta = c(d_s_U2_d_s0, d_s_U2_d_sx, d_s_U2_d_rho)
+
+  # Construct gradient
+  grad = c(rep(0, times=2 + len_W),  # a_0, a_x, A_2
+           d_s_U2_d_theta,  # theta
+           rep(0, times=3),  # b_0, b_m, b_x
+           rep(0, times = len_W),  # B_3
+           rep(0, times = q_Y)  # gamma
+  )
+  return(grad)
+}
+
+## Gradient of sigma_V(x+1)
+grad_s_V2 = function(a, theta, b, gamma, x, W){
+  # Note: All ambiguous parameters in this function are for the Y model. This affects s_0, s_x and rho
+
+  s_0 = gamma[1]
+  s_x = gamma[2]
+  rho = gamma[3]
+
+  q_M = length(theta)
+  q_Y = length(gamma)
+  len_W = length(W)
+
+  # Compute partials
+  d_s_V2_d_s0 = d_sigma_d_s0(x+1, s_0, s_x, rho)
+  d_s_V2_d_sx = d_sigma_d_sx(x+1, s_0, s_x, rho)
+  d_s_V2_d_rho = d_sigma_d_rho(x+1, s_0, s_x, rho)
+
+  # Stack partials
+  d_s_V2_d_gamma = c(d_s_V2_d_s0, d_s_V2_d_sx, d_s_V2_d_rho)
+
+  # Construct gradient
+  grad = c(rep(0, times=2 + len_W),  # a_0, a_x, A_2
+           rep(0, times = q_M),  # theta
+           rep(0, times=3),  # b_0, b_m, b_x
+           rep(0, times = len_W),  # B_3
+           d_s_V2_d_gamma  # gamma
+  )
+  return(grad)
+}
+
+
+
+## Gradient of sigma_U(x)
+grad_s_U1 = function(a, theta, b, gamma, x, W){
+  # Note: All ambiguous parameters in this function are for the M model
+
+  s_0 = theta[1]
+  s_x = theta[2]
+  rho = theta[3]
+
+  q_M = length(theta)
+  q_Y = length(gamma)
+  len_W = length(W)
+
+  # Compute partials
+  d_s_U1_d_s0 = d_sigma_d_s0(x, s_0, s_x, rho)
+  d_s_U1_d_sx = d_sigma_d_sx(x, s_0, s_x, rho)
+  d_s_U1_d_rho = d_sigma_d_rho(x, s_0, s_x, rho)
+
+  # Stack partials
+  d_s_U1_d_theta = c(d_s_U1_d_s0, d_s_U1_d_sx, d_s_U1_d_rho)
+
+  # Construct gradient
+  grad = c(rep(0, times=2 + len_W),  # a_0, a_x, A_2
+                d_s_U1_d_theta,  # theta
+                rep(0, times=3),  # b_0, b_m, b_x
+                rep(0, times = len_W),  # B_3
+                rep(0, times = q_Y)  # gamma
+                )
+  return(grad)
+}
+
+## Gradient of sigma_V(x)
+grad_s_V1 = function(a, theta, b, gamma, x, W){
+  # Note: All ambiguous parameters in this function are for the Y model
+
+  s_0 = gamma[1]
+  s_x = gamma[2]
+  rho = gamma[3]
+
+  q_M = length(theta)
+  q_Y = length(gamma)
+  len_W = length(W)
+
+  # Compute partials
+  d_s_V1_d_s0 = d_sigma_d_s0(x, s_0, s_x, rho)
+  d_s_V1_d_sx = d_sigma_d_sx(x, s_0, s_x, rho)
+  d_s_V1_d_rho = d_sigma_d_rho(x, s_0, s_x, rho)
+
+  # Stack partials
+  d_s_V1_d_gamma = c(d_s_V1_d_s0, d_s_V1_d_sx, d_s_V1_d_rho)
+
+  # Construct gradient
+  grad = c(rep(0, times=2 + len_W),  # a_0, a_x, A_2
+                rep(0, times = q_M),  # theta
+                rep(0, times=3),  # b_0, b_m, b_x
+                rep(0, times = len_W),  # B_3
+                d_s_V1_d_gamma  # gamma
+                )
+  return(grad)
+}
+
+
+
+# Stack all gradients
+grad_xi = function(a, theta, b, gamma, x, W){
+  output = rbind(grad_eta(a, theta, b, gamma, x, W),
+               grad_zeta(a, theta, b, gamma, x, W),
+               grad_a_x(a, theta, b, gamma, x, W),
+               grad_b_m(a, theta, b, gamma, x, W),
+               grad_b_x(a, theta, b, gamma, x, W),
+               grad_s_U2(a, theta, b, gamma, x, W),
+               grad_s_V2(a, theta, b, gamma, x, W),
+               grad_s_U1(a, theta, b, gamma, x, W),
+               grad_s_V1(a, theta, b, gamma, x, W))
+  rownames(output) = NULL
+  colnames(output) = NULL
+
+  return(output)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Finally, we can combine the gradient of Phi with the gradient of the map from GLMM parameters to arguments of Phi. This gives us the gradient of Phi in terms of the parameters for which we have a covariance matrix.
+
+d_Phi_d_GLMM_pars = function(a, theta, b, gamma, x, W){
+
+  output = grad_Phi(a, b, a1, b1, b2, s1, s2, s3, s4) %*% grad_GLMM_to_Phi(a, theta, b, gamma, x, W)
+}
+
+
+#
+#
+# # Verify that gradients of xi, Phi and Phi(xi(.)) are correct
+#
+# e = 0.00001
+#
+#
+# a_0 = 1
+# a_x = 2
+# A_2 = c(3, 4, 5)
+#
+# b_0 = 6
+# b_m = 7
+# b_x = 8
+# B_3 = c(9, 10, 11)
+#
+# theta_0 = 1.5
+# theta_x = 2.5
+# theta_rho = 0.7
+#
+# gamma_0 = 3.5
+# gamma_x = 4.5
+# gamma_rho = 0.8 + e
+#
+# x_ref = 1
+# W_ref = c(2,3,4)
+#
+#
+#
+# a = c(a_0, a_x, A_2)
+# theta = c(theta_0, theta_x, theta_rho)
+# b = c(b_0, b_m, b_x, B_3)
+# gamma = c(gamma_0, gamma_x, gamma_rho)
+#
+# # a_ref = c(a_0, a_x, A_2)
+# # theta_ref = c(theta_0, theta_x, theta_rho)
+# # b_ref = c(b_0, b_m, b_x, B_3)
+# # gamma_ref = c(gamma_0, gamma_x, gamma_rho)
+#
+#
+#
+#
+# grad_xi(a_ref, theta_ref, b_ref, gamma_ref, x_ref, W_ref)
+# (xi(a, theta, b, gamma, x_ref, W_ref) - xi(a_ref, theta_ref, b_ref, gamma_ref, x_ref, W_ref)) / e
