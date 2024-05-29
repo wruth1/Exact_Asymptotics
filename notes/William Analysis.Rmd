@@ -29,7 +29,8 @@ In summary, we can setup each model with the same boilerplate code as follows:
 # , cached=TRUE}
 # Note: This code chunk is not run here, but it is called and run at the start of every subsequent section. Any changes made here will be duplicated throughout the rest of the document.
 
-set.seed(1)
+# set.seed(1)
+set.seed(12345)
 
 num_reps = 1000
 
@@ -1012,9 +1013,12 @@ source("../src/Helpers.R")
 library(lme4)     # For fitting GLMMs using glmer()
 library(MASS)     # For simulating multivariate normals using mvrnorm()
 library(merDeriv) # For computing the full information matrix from models fit using lme4
+library(tictoc)
 
 # Fewer large sample sizes
-all_Ns = c(100, 200, 500, 1000, 2000)
+# all_Ns = c(100, 200, 500, 1000, 2000)
+# all_Ns = c(200, 500, 1000, 2000)
+all_Ns = c(200, 500, 1000)
 
 # Values of X and W for which we compute the total effect
 x_pred = 0
@@ -1031,12 +1035,14 @@ sigma_a_0 = 0.2
 sigma_a_1 = 0.2 * abs(a_1)
 cor_a0_a1 = 0.2
 cov_a0_a1 = sigma_a_0 * sigma_a_1 * cor_a0_a1
+theta = c(sigma_a_0, sigma_a_1, cor_a0_a1)
 Sigma_a = matrix(c(sigma_a_0^2, cov_a0_a1, cov_a0_a1, sigma_a_1^2), nrow = 2, ncol = 2)
 
 sigma_b_0 = 0.2 * abs(b_0)
 sigma_b_1 = 0.2 * abs(b_1)
 cor_b0_b1 = 0.2
 cov_b0_b1 = sigma_b_0 * sigma_b_1 * cor_b0_b1
+gamma = c(sigma_b_0, sigma_b_1, cor_b0_b1)
 Sigma_b = matrix(c(sigma_b_0^2, cov_b0_b1, cov_b0_b1, sigma_b_1^2), nrow = 2, ncol = 2)
 
 # Number of clusters
@@ -1053,6 +1059,8 @@ num_reps = 200
 # , dependson=c("boilerplate")}
 
 tic()
+
+set.seed(2222)
 
 # Containers for output
 all_a_hats = list()
@@ -1184,8 +1192,6 @@ for(j in seq_along(all_Ns)){
       # Estimate mediation effect
       
       ## Fixed-effects
-      x_pred = 0
-      W_pred = c(1,1,1)
   
       a_0_hat = a_hat[1]
       a_x_hat = a_hat[2]
@@ -1274,6 +1280,9 @@ for(j in seq_along(all_Ns)){
 }
 toc()
 
+# Save output
+# save(all_a_hats, all_theta_hats, all_b_hats, all_gamma_hats, all_M_covs, all_Y_covs, all_med_hats, all_med_SEs, file = "William-Analysis_cache/MC-bin-bin-mix.RData")
+# load("William-Analysis_cache/MC-bin-bin-mix.RData")
 ```
 
 We now process the output from our simulation and summarize the results in a table. We give the mean and median of the estimated standard errors, as well as their relative errors (in $\%$) as estimates of the empirical standard error. See Table \ref{tab:results_bin_bin_fix}.
@@ -1292,14 +1301,14 @@ median_delta_SEs = sapply(data_med_SEs, median)
 
 
 # Combine into a table
-results = data.frame(Empirical = emp_SEs, 
-                     Mean = mean_delta_SEs, Median = median_delta_SEs,
-                     "Percent_Err_Mean" = 100*(mean_delta_SEs - emp_SEs)/emp_SEs,
-                     "Percent_Err_Median" = 100*(median_delta_SEs - emp_SEs)/emp_SEs)
-# results = data.frame(n = all_Ns, Empirical = emp_SEs, 
+# results = data.frame(Empirical = emp_SEs,
 #                      Mean = mean_delta_SEs, Median = median_delta_SEs,
 #                      "Percent_Err_Mean" = 100*(mean_delta_SEs - emp_SEs)/emp_SEs,
 #                      "Percent_Err_Median" = 100*(median_delta_SEs - emp_SEs)/emp_SEs)
+results = data.frame(n = all_Ns, Empirical = emp_SEs,
+                     Mean = mean_delta_SEs, Median = median_delta_SEs,
+                     "Percent_Err_Mean" = 100*(mean_delta_SEs - emp_SEs)/emp_SEs,
+                     "Percent_Err_Median" = 100*(median_delta_SEs - emp_SEs)/emp_SEs)
 
 ```
 
@@ -1313,6 +1322,47 @@ kbl(results, format = "latex", booktabs = T, caption = "Summary of SE estimates 
 I don't really understand the results I'm getting here. It should help if I can compare my estimates of the mediation effect with the true value.
 
 ```{r}
+load("../data/Exact_Asymptotics/Bin-Bin-Mix_Results.RData")
 
+true_med = Phi_of_xi(a, theta, b, gamma, x_pred, W_pred)
+
+load("William-Analysis_cache/latex/unnamed-chunk-37_44bd8d1152289e689fbff9185d17042c.RData", ex <- new.env())
+ls.str(ex)
+```
+
+
+Investigate normality of estimators
+```{r}
+library(ggplot2)
+library(magrittr)
+
+med_hats_to_plot = unlist(data_med_hats)
+Ns_to_plot = rep(all_Ns, times = sapply(data_med_hats, length))
+data_med_hat_to_plot = data.frame(med_hat = med_hats_to_plot, N = Ns_to_plot)
+
+data_med_hat_to_plot_OLD = data_med_hat_to_plot
+data_med_hat_to_plot %<>% dplyr::filter(med_hat < 4)
+
+
+ggplot(data_med_hat_to_plot, aes(x = med_hat)) +
+  # geom_histogram(bins = 30) +
+  geom_density() +
+  facet_wrap(~N, scales = "free") +
+  theme_minimal()
+
+# QQ plot for each sample size
+ggplot(data_med_hat_to_plot, aes(sample = med_hat)) +
+  stat_qq() +
+  stat_qq_line() +
+  facet_wrap(~N, scales = "free") +
+  theme_minimal()
+
+# Test normality in each sample size
+all_norm_p_vals = c()
+for(n in all_Ns){
+  p_val = shapiro.test(data_med_hat_to_plot$med_hat[data_med_hat_to_plot$N == n])$p.value
+  all_norm_p_vals = c(all_norm_p_vals, p_val)
+}
+all_norm_p_vals
 ```
 

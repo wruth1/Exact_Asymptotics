@@ -286,24 +286,28 @@ phi = function(mu, sigma){
 ## d phi / d mu
 d1_phi = function(mu, sigma){
   integrand = function(x){
-    A = 1 + exp(-mu - sigma*x)
-    B = dnorm(x)
-    C = exp(-mu - sigma*x)
+    A = dnorm(x)
 
-    return(C*B/A^2)
+    r = mu + sigma*x
+    B = exp(-r/2) + exp(r/2)
+
+    # return(C*B/A^2)
+    return(A / (B^2))
   }
 
   return(integrate(integrand, -Inf, Inf)$value)
 }
 
+
 ## d phi / d sigma
 d2_phi = function(mu, sigma){
   integrand = function(x){
-    A = 1 + exp(-mu - sigma*x)
-    B = dnorm(x)
-    C = x * exp(-mu - sigma*x)
+    A = dnorm(x)
 
-    return(C*B/A^2)
+    r = mu + sigma*x
+    B = exp(-r/2) + exp(r/2)
+
+    return(x * A / B^2)
   }
 
   return(integrate(integrand, -Inf, Inf)$value)
@@ -315,11 +319,17 @@ d2_phi = function(mu, sigma){
 ## In my notation: Phi(eta, zeta, a_x, b_m, b_x, sigma_U(x+1), sigma_V(x+1), sigma_U(x), sigma_V(x))
 ## Note: eta, a and U come from the M-model, while zeta, b and V come from the Y-model
 ## eta and zeta are linear predictors
-Phi = function(a, b, a1, b1, b2, s1, s2, s3, s4){
-  (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4)))
+Phi = function(eta, zeta, a1, b1, b2, s1, s2, s3, s4){
+  (phi(zeta + b1 + b2, s1) * phi(eta + a1, s2) + phi(zeta + b2, s1) * (1 - phi(eta + a1, s2))) * (1 - phi(zeta, s3) + phi(eta, s4) * (phi(zeta, s3) - phi(zeta + b1, s3))) / (1 - phi(zeta + b2, s1) + phi(eta + a1, s2) * (phi(zeta + b2, s1) - phi(zeta + b1 + b2, s2))) / (phi(zeta + b1, s3) * phi(eta, s3) + phi(zeta, s3) * (1 - phi(eta, s4)))
 
 }
 
+# args2
+#
+# e = 0.000001
+# (Phi(args2[1] + e, args2[2], args2[3], args2[4], args2[5], args2[6], args2[7], args2[8], args2[9]) - do.call(Phi, as.list(args2))) / e
+#
+# do.call(grad_Phi, as.list(args2))
 
 
 # Derivatives of Phi (the total mediation effect)
@@ -331,7 +341,15 @@ Phi = function(a, b, a1, b1, b2, s1, s2, s3, s4){
 
 ## d Phi / d a
 dPhi_da = function(a, b, a1, b1, b2, s1, s2, s3, s4){
-  (phi(b + b1 + b2, s1) * d1_phi(a + a1, s2) - phi(b + b2, s1) * d1_phi(a + a1, s2)) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) - (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) ^ 2 * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) * d1_phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2)) + (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) * d1_phi(a, s4) * (phi(b, s3) - phi(b + b1, s3)) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) - (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) ^ 2 * (phi(b + b1, s3) * d1_phi(a, s3) - phi(b, s3) * d1_phi(a, s4))
+  q1 = (phi(b + b1 + b2, s1) * d1_phi(a + a1, s2) - phi(b + b2, s1) * d1_phi(a + a1, s2))
+  q2 = (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2)))
+  q3 = (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3)))
+  q4 = (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4)))
+
+  remainder = (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) ^ 2 * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) * d1_phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2)) + (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) * d1_phi(a, s4) * (phi(b, s3) - phi(b + b1, s3)) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) - (phi(b + b1 + b2, s1) * phi(a + a1, s2) + phi(b + b2, s1) * (1 - phi(a + a1, s2))) / (1 - phi(b + b2, s1) + phi(a + a1, s2) * (phi(b + b2, s1) - phi(b + b1 + b2, s2))) * (1 - phi(b, s3) + phi(a, s4) * (phi(b, s3) - phi(b + b1, s3))) / (phi(b + b1, s3) * phi(a, s3) + phi(b, s3) * (1 - phi(a, s4))) ^ 2 * (phi(b + b1, s3) * d1_phi(a, s3) - phi(b, s3) * d1_phi(a, s4))
+
+
+  q1 / q2 * q3 / q4 - remainder
 }
 
 
@@ -771,15 +789,38 @@ grad_xi = function(a, theta, b, gamma, x, W){
 
 # Finally, we can combine the gradient of Phi with the gradient of the map from GLMM parameters to arguments of Phi. This gives us the gradient of Phi in terms of the parameters for which we have a covariance matrix.
 
-d_Phi_d_GLMM_pars = function(a, theta, b, gamma, x, W){
-
-  output = grad_Phi(a, b, a1, b1, b2, s1, s2, s3, s4) %*% grad_GLMM_to_Phi(a, theta, b, gamma, x, W)
+Phi_of_xi = function(a, theta, b, gamma, x, W){
+  Phi_args = xi(a, theta, b, gamma, x, W)
+  output = do.call(Phi, as.list(Phi_args)) # Pass a vector of arguments to the function Phi
+  return(output)
 }
 
 
-#
-#
-# # Verify that gradients of xi, Phi and Phi(xi(.)) are correct
+
+
+d_Phi_d_GLMM_pars = function(a, theta, b, gamma, x, W){
+  Phi_args = xi(a, theta, b, gamma, x, W)
+  d_xi = grad_xi(a, theta, b, gamma, x, W)
+
+  d_Phi = do.call(grad_Phi, as.list(Phi_args))  # Pass a vector of arguments to the function Phi
+
+  output = d_Phi %*% d_xi
+  return(output)
+}
+
+
+
+
+
+
+
+
+
+
+#### Verify that gradients of xi, Phi and Phi(xi(.)) are correct ####
+
+
+# # Finite difference verification for xi
 #
 # e = 0.00001
 #
@@ -821,3 +862,120 @@ d_Phi_d_GLMM_pars = function(a, theta, b, gamma, x, W){
 #
 # grad_xi(a_ref, theta_ref, b_ref, gamma_ref, x_ref, W_ref)
 # (xi(a, theta, b, gamma, x_ref, W_ref) - xi(a_ref, theta_ref, b_ref, gamma_ref, x_ref, W_ref)) / e
+
+
+
+
+# # Finite difference verification for Phi
+# # a_ref = 1
+# # b_ref = 1
+# # a1_ref = 1
+# # b1_ref = 1
+# # b2_ref = 1
+# # s1_ref = 0.5
+# # s2_ref = 0.5
+# # s3_ref = 0.5
+# # s4_ref = 0.5
+#
+#
+#
+# # e = 0.0000001
+# e = sqrt(.Machine$double.eps)
+#
+#
+#
+# eta = 1 + e
+# zeta = 1
+# a1 = 1
+# b1 = 1
+# b2 = 1
+# s1 = 0.5
+# s2 = 0.5
+# s3 = 0.5
+# s4 = 0.5
+#
+# # eta_ref = eta
+# # zeta_ref = zeta
+# # a1_ref = a1
+# # b1_ref = b1
+# # b2_ref = b2
+# # s1_ref = s1
+# # s2_ref = s2
+# # s3_ref = s3
+# # s4_ref = s4
+#
+#
+#
+# (Phi(eta, zeta, a1, b1, b2, s1, s2, s3, s4) - Phi(eta_ref, zeta_ref, a1_ref, b1_ref, b2_ref, s1_ref, s2_ref, s3_ref, s4_ref)) / e
+#
+# grad_Phi(eta_ref, zeta_ref, a1_ref, b1_ref, b2_ref, s1_ref, s2_ref, s3_ref, s4_ref)
+
+
+
+# # Finite difference verification for Phi(xi(.)) using the numDeriv package
+# ## Manual version follows after. The package is more efficient, albeit took a bit of time to understand.
+#
+#
+# library(numDeriv)
+#
+# a_0 = 1
+# a_x = 2
+# A_2 = c(3, 4, 5)
+#
+# b_0 = 6
+# b_m = 7
+# b_x = 8
+# B_3 = c(9, 10, 11)
+#
+# theta_0 = 1.5
+# theta_x = 2.5
+# theta_rho = 0.7
+#
+# gamma_0 = 3.5
+# gamma_x = 4.5
+# gamma_rho = 0.8
+#
+# x_ref = 1
+# W_ref = c(2,3,4)
+#
+# x_ref = 0
+# W_ref = c(0, 0, 0)
+#
+#
+#
+# a = c(a_0, a_x, A_2)
+# theta = c(theta_0, theta_x, theta_rho)
+# b = c(b_0, b_m, b_x, B_3)
+# gamma = c(gamma_0, gamma_x, gamma_rho)
+#
+# # a_ref = c(a_0, a_x, A_2)
+# # theta_ref = c(theta_0, theta_x, theta_rho)
+# # b_ref = c(b_0, b_m, b_x, B_3)
+# # gamma_ref = c(gamma_0, gamma_x, gamma_rho)
+#
+# arg_vec = c(a_0, a_x, A_2[1], A_2[2], A_2[3], theta_0, theta_x, theta_rho, b_0, b_m, b_x, B_3[1], B_3[2], B_3[3], gamma_0, gamma_x, gamma_rho)
+#
+#
+# my_fun = function(args){
+#   a = args[1:5]
+#   theta = args[6:8]
+#   b = args[9:14]
+#   gamma = args[15:17]
+#
+#   return(Phi_of_xi(a, theta, b, gamma, x, W))
+#
+# }
+#
+# jacobian(my_fun, arg_vec)
+# d_Phi_d_GLMM_pars(a, theta, b, gamma, x_ref, W_ref)
+#
+#
+# #
+# #
+# #
+# # e = 0.00001
+# # e = sqrt(.Machine$double.eps)
+# #
+# # (Phi_of_xi(a, theta, b, gamma, x_ref, W_ref) - Phi_of_xi(a_ref, theta_ref, b_ref, gamma_ref, x_ref, W_ref)) / e
+# # d_Phi_d_GLMM_pars(a, theta, b, gamma, x_ref, W_ref)
+
