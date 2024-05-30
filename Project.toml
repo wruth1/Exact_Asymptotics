@@ -2,11 +2,13 @@ name = "Exact_Asymptotics"
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+DataFramesMeta = "1313f7d8-7da2-5740-9ea0-a2ca25f37964"
 DrWatson = "634d3b9d-ee7a-5ddf-bec9-22491ea816e1"
 GLM = "38e38edf-8417-5370-95a0-9cbb8c7f171a"
 JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
 LogExpFunctions = "2ab3a3ac-af41-5b50-aa03-7779005ae688"
 MixedModels = "ff71e718-51f3-5ec2-a782-8ffcbfa3c316"
+Pipe = "b98c9c47-44ae-5843-9183-064241ee97a0"
 
 [compat]
 DrWatson = "2.15.0"

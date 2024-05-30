@@ -2,7 +2,7 @@
 #* Later, I can introduce prediction of random effects
 
 using Distributions, Random, Statistics
-using LogExpFunctions   # For the logit and expit functions
+using LogExpFunctions  
 using DataFrames
 using MixedModels
 using ProgressMeter, DrWatson
