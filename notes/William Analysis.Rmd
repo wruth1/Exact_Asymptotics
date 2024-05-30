@@ -1018,6 +1018,7 @@ library(tictoc)
 # Fewer large sample sizes
 # all_Ns = c(100, 200, 500, 1000, 2000)
 # all_Ns = c(200, 500, 1000, 2000)
+# all_Ns = c(200, 500, 1000)
 all_Ns = c(200, 500, 1000)
 
 # Values of X and W for which we compute the total effect
@@ -1046,7 +1047,10 @@ gamma = c(sigma_b_0, sigma_b_1, cor_b0_b1)
 Sigma_b = matrix(c(sigma_b_0^2, cov_b0_b1, cov_b0_b1, sigma_b_1^2), nrow = 2, ncol = 2)
 
 # Number of clusters
-K=5
+all_Ks = c(5, 20, 50)
+# K=5
+
+N_K_combs = expand.grid(N = all_Ns, K = all_Ks)
 
 # Number of replicates for each sample size
 # We use fewer here because model fitting takes longer
@@ -1075,8 +1079,11 @@ all_med_hats = list()
 all_med_SEs = list()
 
 
-for(j in seq_along(all_Ns)){
-  n = all_Ns[j]
+
+
+for(j in seq_len(nrow(N_K_combs))){
+  n = N_K_combs[j, "N"]
+  K = N_K_combs[j, "K"]
   
   # Containers for output with this value of n
   some_a_hats = list()
@@ -1091,7 +1098,7 @@ for(j in seq_along(all_Ns)){
   some_med_SEs = list()
   
   for(i in 1:num_reps){
-    print(paste0("n = ", n, ", i = ", i, " of ", num_reps))
+    print(paste0("n = ", n, ", K = ", K, ", i = ", i, " of ", num_reps))
     
     
     # Use tryCatch to omit any datasets leading to convergence issues
@@ -1281,7 +1288,7 @@ for(j in seq_along(all_Ns)){
 toc()
 
 # Save output
-# save(all_a_hats, all_theta_hats, all_b_hats, all_gamma_hats, all_M_covs, all_Y_covs, all_med_hats, all_med_SEs, file = "William-Analysis_cache/MC-bin-bin-mix.RData")
+# save(all_a_hats, all_theta_hats, all_b_hats, all_gamma_hats, all_M_covs, all_Y_covs, all_med_hats, all_med_SEs, file = "William-Analysis_cache/MC-bin-bin-mix-n=200,500,1000.RData")
 # load("William-Analysis_cache/MC-bin-bin-mix.RData")
 ```
 
@@ -1305,7 +1312,11 @@ median_delta_SEs = sapply(data_med_SEs, median)
 #                      Mean = mean_delta_SEs, Median = median_delta_SEs,
 #                      "Percent_Err_Mean" = 100*(mean_delta_SEs - emp_SEs)/emp_SEs,
 #                      "Percent_Err_Median" = 100*(median_delta_SEs - emp_SEs)/emp_SEs)
-results = data.frame(n = all_Ns, Empirical = emp_SEs,
+# results = data.frame(n = all_Ns, Empirical = emp_SEs,
+#                      Mean = mean_delta_SEs, Median = median_delta_SEs,
+#                      "Percent_Err_Mean" = 100*(mean_delta_SEs - emp_SEs)/emp_SEs,
+#                      "Percent_Err_Median" = 100*(median_delta_SEs - emp_SEs)/emp_SEs)
+results = data.frame(n = N_K_combs$N, K = N_K_combs$K, Empirical = emp_SEs,
                      Mean = mean_delta_SEs, Median = median_delta_SEs,
                      "Percent_Err_Mean" = 100*(mean_delta_SEs - emp_SEs)/emp_SEs,
                      "Percent_Err_Median" = 100*(median_delta_SEs - emp_SEs)/emp_SEs)
@@ -1337,8 +1348,9 @@ library(ggplot2)
 library(magrittr)
 
 med_hats_to_plot = unlist(data_med_hats)
-Ns_to_plot = rep(all_Ns, times = sapply(data_med_hats, length))
-data_med_hat_to_plot = data.frame(med_hat = med_hats_to_plot, N = Ns_to_plot)
+Ns_to_plot = rep(N_K_combs$N, times = sapply(data_med_hats, length))
+Ks_to_plot = rep(N_K_combs$K, times = sapply(data_med_hats, length))
+data_med_hat_to_plot = data.frame(med_hat = med_hats_to_plot, N = Ns_to_plot, K = Ks_to_plot)
 
 data_med_hat_to_plot_OLD = data_med_hat_to_plot
 data_med_hat_to_plot %<>% dplyr::filter(med_hat < 4)
@@ -1346,23 +1358,24 @@ data_med_hat_to_plot %<>% dplyr::filter(med_hat < 4)
 
 ggplot(data_med_hat_to_plot, aes(x = med_hat)) +
   # geom_histogram(bins = 30) +
-  geom_density() +
-  facet_wrap(~N, scales = "free") +
-  theme_minimal()
+  geom_density() +   theme_minimal() +
+  facet_grid(rows = vars(N), cols = vars(K), scales = "free")
 
 # QQ plot for each sample size
 ggplot(data_med_hat_to_plot, aes(sample = med_hat)) +
   stat_qq() +
   stat_qq_line() +
-  facet_wrap(~N, scales = "free") +
+  facet_grid(rows = vars(N), cols = vars(K), scales = "free")
   theme_minimal()
 
 # Test normality in each sample size
 all_norm_p_vals = c()
-for(n in all_Ns){
-  p_val = shapiro.test(data_med_hat_to_plot$med_hat[data_med_hat_to_plot$N == n])$p.value
+for(i in 1:nrow(N_K_combs)){
+  p_val = shapiro.test(data_med_hats[[i]])$p.value
   all_norm_p_vals = c(all_norm_p_vals, p_val)
 }
-all_norm_p_vals
+
+results$Shapiro_p = all_norm_p_vals
+results
 ```
 
