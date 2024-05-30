@@ -10,7 +10,7 @@
 \usepackage{natbib}
 \bibliographystyle{plainnat}
 
-\usepackage{hyperref}   % For the \url{} command
+\usepackage[breaklinks,hidelinks]{hyperref}   % For the \url{} command
 
 \usepackage{tabu,multirow}
 
@@ -57,7 +57,7 @@ Consider using  logistic regression models for $Y$ and $M$. Write $\mathrm{logit
     \frac{1}{1 + \exp(-\beta_0 - \beta_x x)} \frac{1}{1 + \exp(\alpha_0 + \alpha_x x')} \label{eq:med_bin_fix}
 \end{multline}
 %
-Equation (\ref{eq:med_bin_fix}) holds for logistic regression with fixed-effects only. If we instead use  mixed-effects logistic regressions for $Y$ and $M$, then (\ref{eq:med_gen}) and (\ref{eq:med_bin}) still hold. For the mixed-effects models, first, write $V = (V_0, V_m, V_x) \sim \mathrm{N}(0, \Sigma_V)$ and $U = (U_0, U_x) \sim \mathrm{N}(0, \Sigma_U)$ for the random-effects in our models for $Y$ and $M$ respectively. Next, write $\mathrm{logit}(\bE(Y | V, M=m, X=x)) = \beta_0 + V_0 + (\beta_m + V_m) m + (\beta_x + V_x) x$ and $\mathrm{logit}(\bE(M |U, X=x)) = (\alpha_0 + U_0) + (\alpha_x + U_x) x$. Returning now to identification of the expected counterfactual for $Y$, we get
+Equation (\ref{eq:med_bin_fix}) holds for logistic regression with fixed-effects only. If we instead use  mixed-effects logistic regressions for $Y$ and $M$, then (\ref{eq:med_gen}) and (\ref{eq:med_bin}) still hold, but (\ref{eq:med_bin_fix}) must be modified. For the mixed-effects models, first write $V = (V_0, V_m, V_x) \sim \mathrm{N}(0, \Sigma_V)$ and $U = (U_0, U_x) \sim \mathrm{N}(0, \Sigma_U)$ for the random-effects in our models for $Y$ and $M$ respectively. Next, write $\mathrm{logit}(\bE(Y | V, M=m, X=x)) = \beta_0 + V_0 + (\beta_m + V_m) m + (\beta_x + V_x) x$ and $\mathrm{logit}(\bE(M |U, X=x)) = (\alpha_0 + U_0) + (\alpha_x + U_x) x$. Returning now to identification of the expected counterfactual for $Y$, we get
 %
 \begin{align}
     \bE Y(x, M(x')) =& \left[\int \bP(Y=1 |V=v, M=1, X=x) \bP(V = dv)\right] \cdot \\
@@ -92,7 +92,9 @@ Note that $\psi$ is a univariate integral, so we can expect it to be well-approx
 
 
 \section{Mediation Effects}
-Denote the expected nested counterfactual defined in (\ref{eq:med_gen}) by $\mathscr{Y}(x, x') = \bE Y(x, M(x'))$. We can define the various mediation effects in terms of expected counterfactuals. Note that mediation effects for a binary outcome are commonly defined on three different scales: risk difference, risk ratio and odds ratio. Table \ref{tab:med_eff_defs} gives all such definitions explicitly. Combined with the formulas given throughout Section \ref{sec:nest_CFs}, we now have everything we need to do point estimation for the various mediation effects. It still remains however, to address uncertainty quantification.
+Denote the expected nested counterfactual defined in (\ref{eq:med_gen}) by $\mathscr{Y}(x, x') = \bE Y(x, M(x'))$. We can define the various mediation effects in terms of expected counterfactuals. Note that mediation effects for a binary outcome are commonly defined on three different scales: risk difference, risk ratio and odds ratio. Table \ref{tab:med_eff_defs} gives all such definitions explicitly. In the rest of this section, we outline the processes of estimation and uncertainty quantification for the mediation effects defined in Table \ref{tab:med_eff_defs}.
+
+
 %
 \begin{table}[ht]
     \centering
@@ -121,20 +123,36 @@ Denote the expected nested counterfactual defined in (\ref{eq:med_gen}) by $\mat
     \end{tabu}
 \end{table}
 
-\subsection{Uncertainty Quantification}
 
-Note that all mediation effects are defined in terms of expected nested counterfactuals $\sY$. Thus, if we can produce a formula for the asymptotic covariance matrix of two (or more) values of $\sY$, we can use a simple application of the $\delta$-method to obtain the variance of any mediation effect. In fact, we can obtain the covariance matrix for all three mediation effects defined on a particular scale (e.g., risk ratio), or, indeed, between all nine mediation effects given in Table \ref{tab:med_eff_defs}. 
+\subsection{Estimation}
 
-Toward a variance formula for $\sY$, we first write $\theta$ for all parameters upon which $\sY$ depends. That is, $\theta$ contains both sets of regression coefficients, $\beta_0, \beta_m, \beta_x$ and $\alpha_0, \alpha_x$, as well as both sets of covariance parameters. For consistency with B \& B, we parameterize these as $\tau_0, \tau_m, \tau_x$ for the standard deviations of $V_0, V_m, V_x$, and $\tau_{0,m}, \tau_{0,x}, \tau_{m,x}$ for the corresponding correlations\footnote{While our notation doesn't match that given by B \& B, parameterizing in terms of the standard deviations and correlations does. Alternative choices include the variances and covariances, or the unique components of the Cholesky factorizations of $\Sigma_V$ and $\Sigma_U$.}. Similarly, we use $\sigma_0, \sigma_x$ for the standard deviations of $U_0, U_x$, and $\sigma_{0,x}$ for their correlation. We are now equipped to write-out $\theta$ in full. The order of parameters is chosen to match my code (and to avoid refactoring thereof).
+Mediation effects are all defined in terms of the expected nested counterfactuals, $\sY(x, x')$. As such, the estimation of any mediation effect given in Table \ref{tab:med_eff_defs} centers around estimation of $\sY$. To this end, write $\theta$ for all parameters upon which $\sY$ depends. That is, $\theta$ contains both sets of regression coefficients, $\beta_0, \beta_m, \beta_x$ and $\alpha_0, \alpha_x$, as well as both sets of covariance parameters. For consistency with B \& B, we parameterize these as $\tau_0, \tau_m, \tau_x$ for the standard deviations of $V_0, V_m, V_x$, and $\tau_{0,m}, \tau_{0,x}, \tau_{m,x}$ for the corresponding correlations\footnote{While our notation doesn't match that given by B \& B, parameterizing in terms of the standard deviations and correlations does. Alternative choices include the variances and covariances, or the unique components of the Cholesky factorizations of $\Sigma_V$ and $\Sigma_U$.}. Similarly, we use $\sigma_0, \sigma_x$ for the standard deviations of $U_0, U_x$, and $\sigma_{0,x}$ for their correlation. We are now equipped to write-out $\theta$ in full. The order of parameters is chosen to match my code (and to avoid refactoring thereof).
 $$
 \theta = (\alpha_0, \alpha_x, \sigma_0, \sigma_x, \sigma_{0,x}, \beta_0, \beta_m, \beta_x, \tau_0, \tau_m, \tau_x, \tau_{0,m}, \tau_{0,x}, \tau_{m,x})
 $$
 %
-There are two problems left to solve for the quantification of uncertainty in $\sY$. First, we need the (asymptotic) covariance matrix of $\theta$. Second, we need the $\theta$-gradient of the function $\sY$. Note that $\sY$ is also a function of $x$ and $x'$, but we treat these values as fixed for our analysis.
+In order to estimate $\theta$, we fit two mixed-effects logistic regression models. The first model predicts the mediator, $M$, using the exposure, $X$, while the second predicts the outcome, $Y$, using $M$ and $X$. Both models also contain intercepts. We include random effects for all regression coefficients in both models. \textcolor{red}{Either or both models may also contain one or more confounders, $\mathbf{C}$, although we assign these confounders only fixed effects.} Following the algorithm used by the \texttt{lme4} package in \texttt{R} \citep{Bat15, Wal23}, we estimate the parameters in both regression models by maximizing an approximation to the marginal likelihood of the response ($M$ or $Y$). This approximation is obtained using Laplace's Method, maximizing the joint likelihood with the random effects using a penalized iteratively re-weighted least squares algorithm. Applying this procedure to both of our regression models yields estimates for all components of $\theta$.
+
+Combining our estimate of $\theta$ with Equation \ref{eq:med_bin_ran} from Section \ref{sec:nest_CFs} and the formulas given in Table \ref{tab:med_eff_defs}, we are now able to estimate all mediation effects on the three scales we consider. It remains however, to address uncertainty quantification.
+
+
+\subsection{Uncertainty Quantification}
+
+As mentioned above, all mediation effects are defined in terms of expected nested counterfactuals $\sY$, which themselves depend on the parameter vector $\theta$. Quantification of uncertainty for our estimator of a mediation effect thus proceeds in three stages. First, we obtain a covariance matrix for our estimator of $\theta$. Second, we apply the $\delta$-method to get a joint covariance matrix for all values of $\sY$ required to evaluate the mediation effect of interest. Finally, we use the $\delta$-method again to translate uncertainty in the $\sY$s to uncertainty in the mediation effect. In fact, we can obtain the covariance matrix for all three mediation effects defined on a particular scale (e.g., risk ratio), or, indeed, between all nine mediation effects given in Table \ref{tab:med_eff_defs}. Note that the variances and covariances discussed above are asymptotic. 
+
+We now proceed with the three steps discussed above, starting with an asymptotic covariance matrix for $\theta$. \textcolor{red}{For now, we treat the two regression models as independent. That is, we assume that the covariance between all parameter estimators in our $M$ model and all parameter estimators in our $Y$ model are zero. This is likely not true; call it a working assumption. See \citet{Bau06} for a method to model this inter-model dependence.} This step is fairly straightforward, since both regression models are fit using (approximate) maximum likelihood. We simply compute the negative Hessian of the marginal log-likelihood for the observed data in both models, and stack the results into a block-diagonal matrix. Call the resulting covariance matrix $\hat{\Sigma}_\theta$. This computation is performed by the \texttt{merDeriv} package in \texttt{R} \citep{Wan18}.
+
+To quantify uncertainty in $\sY$ based on our estimator for $\theta$, we use the $\delta$-method \citep[see, e.g., Chapter 3 of][]{vdV98}. Briefly, given the asymptotic covariance of our estimator for $\theta$, $\sqrt{n}(\hat{\theta} - \theta) \rightsquigarrow \mathrm{N}(0, \Sigma)$, the asymptotic covariance of some function of our estimator can be obtained by differentiating that function and multiplying by the limiting distribution. That is, $\sqrt{n}[f(\hat{\theta}) - f(\theta)] \rightsquigarrow \nabla f(\theta)\mathrm{N}(0, \Sigma) \overset{d}{=} \mathrm{N}(0, \nabla f(\theta) \Sigma \nabla f(\theta)^T)$. We estimate this limiting covariance by $\nabla f(\hat{\theta}) \hat{\Sigma} \nabla f(\hat{\theta})^T$, where typically $\Sigma = \Sigma(\theta)$ and $\hat{\Sigma} = \Sigma(\hat{\theta})$.
+
+Returning now to our problem, in order to apply the $\delta$-method we need the gradient of $\sY$ with respect to $\theta$. While tedious, this calculation is easily performed with the help of symbolic differentiation software like Maple \citep{Map20}. We then evaluate our gradient formula at $\hat{\theta}$, $\left. \nabla \sY \right|_{\theta = \hat{\theta}}$, then pre- and post-multiply $\hat{\Sigma}_\theta$ by our estimated gradient. If we require the covariance matrix for multiple values of $\sY$ (e.g., $\sY(x,x)$ and $\sY(x,x')$ for some $x \neq x'$), we frame the problem as a vector-valued transformation, and compute the Jacobian by stacking the gradient for each $\sY$. More precisely, to get a covariance matrix for $\sY_1, \ldots, \sY_r$, we first construct the $r$-by-$|\theta|$ Jacobian matrix $\mathcal{J} := [\nabla \sY_1, \ldots, \nabla \sY_r]$. We then evaluate $\mathcal{J}$ at $\theta = \hat{\theta}$, call the result $\hat{\mathcal{J}}$, and pre- and post-multiply $\hat{\Sigma}_\theta$ by $\hat{\mathcal{J}}$, $\hat{\mathcal{J}} \hat{\Sigma}_\theta \hat{\mathcal{J}}^T$.
+
+Finally, to get the asymptotic variance of one or more estimated mediation effects, we just apply the $\delta$-method to the corresponding formulas from Table \ref{tab:med_eff_defs}. Since the mediation effects are all simple functions of the $\sY$, any gradients required for this step are easily obtained.
+
 
 \section{To Do}
 \begin{itemize}
     \item Incorporate an interaction term between $X$ and $M$ in the model for $Y$.
+    \item Explore dependence between the models for $M$ and $Y$ using the `stacking' technique described in \citet{Bau06}. This will give non-zero covariance between parameter estimators from the two models.
 \end{itemize}
 
 \bibliography{../Literature_Review/Lit_Review_Bib.bib}
