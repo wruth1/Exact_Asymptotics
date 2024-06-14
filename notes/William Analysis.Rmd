@@ -997,6 +997,25 @@ med_SE = med_asymp_SE / sqrt(n)
 Putting everything together, we have an estimated mediation effect of `r med_hat`, with an estimated SE of `r med_SE`.
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## Monte Carlo Study
 
 We now repeat the above analysis `r num_reps` times for each of various values of $n$. Values of $X$ and $W$ for which we compute the total effect are set at the beginning. We also re-run the boilerplate code (not shown).
@@ -1047,7 +1066,7 @@ gamma = c(sigma_b_0, sigma_b_1, cor_b0_b1)
 Sigma_b = matrix(c(sigma_b_0^2, cov_b0_b1, cov_b0_b1, sigma_b_1^2), nrow = 2, ncol = 2)
 
 # Number of clusters
-all_Ks = c(5, 20, 50)
+all_Ks = c(5, 20, 50, 100)
 # K=5
 
 N_K_combs = expand.grid(N = all_Ns, K = all_Ks)
@@ -1062,9 +1081,12 @@ num_reps = 200
 ```{r MC-bin-bin-mix, include=FALSE, cache=TRUE}
 # , dependson=c("boilerplate")}
 
+library(doParallel)
+library(pbapply)
+
 tic()
 
-set.seed(2222)
+set.seed(1)
 
 # Containers for output
 all_a_hats = list()
@@ -1079,30 +1101,52 @@ all_med_hats = list()
 all_med_SEs = list()
 
 
+# Initialize cluster on my machine ----
+# n_cores = 2
+# n_cores = 10
+n_cores = parallel::detectCores() - 1
+my_cluster = makeCluster(n_cores, type = "PSOCK")
+registerDoParallel(my_cluster)
+clusterEvalQ(my_cluster,{
+  library(MASS)
+  library(lme4)
+  library(merDeriv)
+  source("../src/Helpers.R")
+})
+clusterExport(my_cluster, c("N_K_combs", "num_reps", "a_0", "a_1", "A_2", "a", "b_0", "b_1", "b_2", "B_3", "b", "Sigma_a", "theta", "Sigma_b", "gamma", "p_conf", "x_pred", "W_pred"))
+clusterSetRNGStream(my_cluster, iseed = 1)
 
-
+# output_bin_bin_ran = pblapply(seq_len(nrow(N_K_combs)), function(j){
+# output_bin_bin_ran = pblapply(nrow(N_K_combs), function(j){
 for(j in seq_len(nrow(N_K_combs))){
   n = N_K_combs[j, "N"]
   K = N_K_combs[j, "K"]
   
-  # Containers for output with this value of n
-  some_a_hats = list()
-  some_theta_hats = list()
-  some_b_hats = list()
-  some_gamma_hats = list()
+  clusterExport(my_cluster, c("n", "K"))
   
-  some_M_covs = list()
-  some_Y_covs = list()
+  print(paste0("j = ", j, " of ", nrow(N_K_combs),  " (n=", n, ", K=", K, ")"))
+
   
-  some_med_hats = list()
-  some_med_SEs = list()
+  # # Containers for output with this value of n
+  # some_a_hats = list()
+  # some_theta_hats = list()
+  # some_b_hats = list()
+  # some_gamma_hats = list()
+  # 
+  # some_M_covs = list()
+  # some_Y_covs = list()
+  # 
+  # some_med_hats = list()
+  # some_med_SEs = list()
   
-  for(i in 1:num_reps){
-    print(paste0("n = ", n, ", K = ", K, ", i = ", i, " of ", num_reps))
+  # for(i in 1:num_reps){
+  some_output = pblapply(seq_len(num_reps), function(i){
+    # print(paste0("n = ", n, ", K = ", K, ", i = ", i, " of ", num_reps))
     
+    this_output = NULL
     
     # Use tryCatch to omit any datasets leading to convergence issues
-    tryCatch({
+    tryCatch({                                                                    ############## Un-quote
       all_Xs = list()
       all_Ws = list()
   
@@ -1170,9 +1214,9 @@ for(j in seq_len(nrow(N_K_combs))){
       ### Estimated SE covariance matrix
       M_cov = vcov(M_model, full=TRUE, ranpar="sd")
       
-      some_a_hats[[i]] = a_hat
-      some_theta_hats[[i]] = theta_hat
-      some_M_covs[[i]] = M_cov
+      # some_a_hats[[i]] = a_hat
+      # some_theta_hats[[i]] = theta_hat
+      # some_M_covs[[i]] = M_cov
       
       
       ## Y
@@ -1190,9 +1234,9 @@ for(j in seq_len(nrow(N_K_combs))){
       ### Estimated SE covariance matrix
       Y_cov = vcov(Y_model, full=TRUE, ranpar="sd")
       
-      some_b_hats[[i]] = b_hat
-      some_gamma_hats[[i]] = gamma_hat
-      some_Y_covs[[i]] = Y_cov
+      # some_b_hats[[i]] = b_hat
+      # some_gamma_hats[[i]] = gamma_hat
+      # some_Y_covs[[i]] = Y_cov
       
       
       
@@ -1235,21 +1279,21 @@ for(j in seq_len(nrow(N_K_combs))){
       ## Mediation effect
       ### See Helpers.R for the function Phi, which computes the mediation effect on odds-ratio scale
       med_hat = Phi(eta_hat, zeta_hat, a_x_hat, b_m_hat, b_x_hat, sigma_M2, sigma_Y2, sigma_M1, sigma_Y1)
-      some_med_hats[[i]] = med_hat
+      # some_med_hats[[i]] = med_hat
       
       
       
       
   
       # Estimate SE
-      
+
       ## Gradient of OR wrt regression coefficients
       grad_Phi_obs = grad_Phi(eta_hat, zeta_hat, a_x_hat, b_m_hat, b_x_hat, sigma_M2, sigma_Y2, sigma_M1, sigma_Y1)
       grad_xi_obs = grad_xi(a_hat, theta_hat, b_hat, gamma_hat, x_pred, W_pred)
       d_Phi_d_GLMM_pars = grad_Phi_obs %*% grad_xi_obs
-  
+
       ## Get asymptotic SE using delta method
-  
+
       ### Build joint covariance matrix of regression coefficients
       M_length = nrow(M_cov)
       Y_length = nrow(Y_cov)
@@ -1258,37 +1302,48 @@ for(j in seq_len(nrow(N_K_combs))){
       joint_cov[1:M_length, 1:M_length] = M_cov
       joint_cov[(M_length + 1):(M_length + Y_length), (M_length + 1):(M_length +
       Y_length)] = Y_cov
-  
+
       ### Convert to asymptotic covariance matrix
       asymp_reg_cov = n * joint_cov
-  
+
       ### Pre- and post-multiply asymptotic covariance by gradient of Phi wrt GLMM parameters
       med_asymp_var = d_Phi_d_GLMM_pars %*% asymp_reg_cov %*% t(d_Phi_d_GLMM_pars)
-  
+
       ### Get small-sample standard error
       med_asymp_SE = sqrt(med_asymp_var)
       med_SE = med_asymp_SE / sqrt(n)
+
+      # some_med_SEs[[i]] = med_SE
+
+      this_output = list(a_hat = a_hat, theta_hat = theta_hat, b_hat = b_hat, gamma_hat = gamma_hat, M_cov = M_cov, Y_cov = Y_cov, med_hat = med_hat, med_SE = med_SE)
+    # }, error = function(e){grad_Phi_obs <<- e}) # For troubleshooting parallel errors
+    }, error = function(e){})                                                       ############ Un-quote
+
+    return(this_output)
+
+    
+  }, cl = my_cluster)
+  # })
   
-      some_med_SEs[[i]] = med_SE
-    }, error = function(e){})
-  }
-  
-  # Store output for current value of n
-  all_a_hats[[j]] = some_a_hats
-  all_theta_hats[[j]] = some_theta_hats
-  all_b_hats[[j]] = some_b_hats
-  all_gamma_hats[[j]] = some_gamma_hats
-  
-  all_M_covs[[j]] = some_M_covs
-  all_Y_covs[[j]] = some_Y_covs
-  
-  all_med_hats[[j]] = some_med_hats
-  all_med_SEs[[j]] = some_med_SEs
+  # Store output for current values of n and K
+  all_a_hats[[j]] = lapply(some_output, function(x) x$a_hat)
+  all_theta_hats[[j]] = lapply(some_output, function(x) x$theta_hat)
+  all_b_hats[[j]] = lapply(some_output, function(x) x$b_hat)
+  all_gamma_hats[[j]] = lapply(some_output, function(x) x$gamma_hat)
+  all_M_covs[[j]] = lapply(some_output, function(x) x$M_cov)
+  all_Y_covs[[j]] = lapply(some_output, function(x) x$Y_cov)
+  all_med_hats[[j]] = lapply(some_output, function(x) x$med_hat)
+  all_med_SEs[[j]] = lapply(some_output, function(x) x$med_SE)
 }
-toc()
+
+
+runtime = toc()
+
+parallel::stopCluster(my_cluster)
+
 
 # Save output
-# save(all_a_hats, all_theta_hats, all_b_hats, all_gamma_hats, all_M_covs, all_Y_covs, all_med_hats, all_med_SEs, file = "William-Analysis_cache/MC-bin-bin-mix-n=200,500,1000.RData")
+# save(all_a_hats, all_theta_hats, all_b_hats, all_gamma_hats, all_M_covs, all_Y_covs, all_med_hats, all_med_SEs, runtime, file = "William-Analysis_cache/MC-bin-bin-mix.RData")
 # load("William-Analysis_cache/MC-bin-bin-mix.RData")
 ```
 
@@ -1377,5 +1432,6 @@ for(i in 1:nrow(N_K_combs)){
 
 results$Shapiro_p = all_norm_p_vals
 results
+
 ```
 

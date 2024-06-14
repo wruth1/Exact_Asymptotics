@@ -1,0 +1,473 @@
+\documentclass{report}
+
+\usepackage{amsmath, amssymb}
+\usepackage{xcolor}
+\usepackage{caption, subcaption}
+\usepackage{graphicx}
+\usepackage{bm}             % For bold math symbols
+
+\usepackage{natbib}
+\bibliographystyle{plainnat}
+
+\usepackage{hyperref}   % For the \url{} command
+
+\usepackage{tabu,multirow}
+
+
+
+\newcommand{\bG}{\mathbb{G}}
+\newcommand{\bF}{\mathbb{F}}
+\newcommand{\bP}{\mathbb{P}}
+\newcommand{\bE}{\mathbb{E}}
+\newcommand{\bV}{\mathbb{V}}
+
+\newcommand{\zdens}{\frac{e^{-z^2/2}}{\sqrt{2\pi}}}
+
+\newcommand{\sY}{\mathcal{Y}}
+
+
+
+\title{An Update on William's Work}
+
+\begin{document}
+
+\maketitle
+
+\chapter*{Preface}
+\addcontentsline{toc}{chapter}{Preface}
+
+
+I have been working on three main areas: a literature review of estimation and UQ for multilevel mediation, implementing the UQ developed by B \& B for the estimated total effect, and expanding their development to address direct and indirect effects. In this document, I attempt to consolidate this disparate work in one place. Unfortunately, since my implementation was written in RMarkdown, I only overview that work here and refer to an external PDF.
+
+In the interest of minimizing the amount of re-writing necessary, I have organized this document into chapters.
+
+\tableofcontents
+
+
+\chapter{Literature Review}
+
+\section{Summary and Future Work}
+
+\subsection{May 23}
+
+I'm just finishing-up my code for the binary response, binary mediator, mixed effects case. My analysis is running, but the output doesn't look right, so I need to do some debugging. 
+
+I now better understand the uncertainty quantification method used by the Imai group. See Section \ref{sec:Imai_UQ} for details. Briefly, they do a Monte Carlo analog of the $\delta$-method. If the target of inference is a function of some model parameters, they start by estimating the sampling distribution of our estimator for those model parameters. They then simulate from this estimated sampling distribution and evaluate the function of interest on each simulated observation. This produces a sample from the pushforward measure induced on the target of inference by our estimated sampling distribution for the model parameters. It's not completely clear to me how they generate confidence intervals from the Monte Carlo samples, but they call their method ``quasi-Bayesian'', so I suspect it's just percentile intervals. 
+
+Incidentally, if we could do exact (i.e. non-asymptotic) distribution theory for the model parameter (e.g. ordinary linear regression), then Imai's method is equivalent to the parametric bootstrap. They just skip the generation of datasets and work directly with the bootstrap distribution of the estimator.
+
+A thought on how to frame the definition of mediation effects on different scales: the mediation formula of \citet{Pea12} identifies causal direct/indirect effects with specific functions of conditional expectations of the outcome and mediator. This makes it natural to work on the risk-difference scale, as done by the Imai group (see Section \ref{sec:Imai}). However, if we prefer the risk-ratio or odds-ratio, we can just express our target quantities in terms of the functions identified by \citet{Pea12}. There may or may not be simplification that leads to interpretable formulas, but that's not the point. You can define mediation effects on whatever scale you like, then we will give you estimates and standard errors, irrespective of how messy the formulas may be (they will all be hidden in the code anyway).
+
+\subsubsection{What to do Next}
+
+I think that at this week's meeting, we should plan out what we want to put in the paper. I propose that we do total, direct and indirect effects on risk difference, risk ratio and odds ratio scales, but stick to fixed-effects (i.e. avoid predicting group-level effects). Based on other work in the literature. I think that's enough for a paper, provided that we do a nice Monte Carlo study comparing our UQ with other methods, such as Imai's quasi-Bayesian method, the weighting method of \citet{Lan12} and the imputation method of \citet{Van12}. All of these methods are implemented to varying extents in \texttt{R} packages, \texttt{mediation} for the former and \texttt{medflex} for the latter two.
+
+Prediction of group-level effects barely comes up in the literature. The \texttt{mediation} package from Imai's group does it, but with very little discussion. They give a few sentences in the package vignette saying they can do group-level effect prediction, but don't give any further discussion or references. I had to read their source code to know what method they're using. Prediction of group-level mediation effects seems like an untapped area that we are well-positioned to develop. 
+
+
+
+\subsection{May 16}
+
+This week, I added work by Imai and colleagues, as well as a few general references. See Section \ref{sec:Imai} for the Imai group. There is also a method proposed by \citet{Lan12} based on inverse probability weighting to estimate unobserved counterfactuals. Both of these methods are included in the extensive Monte Carlo study of \citet{Sam23} and found to be comparable to inference for mediation effects based on the $\delta$-method. However, the method of \citet{Ima10I} is computationally intensive, and that of \citet{Lan12} is quite different from our approach of combining estimates from two regression models.
+
+I also found an \texttt{R} package, \texttt{merDeriv} \citep{Wan18} which computes the full asymptotic covariance matrix for a GLMM fit using \texttt{lme4}. This will save me a lot of time in implementing the $\delta$-method uncertainty quantification for mixed-effects models. 
+
+\subsubsection{What to do next}
+
+I'm still not totally confident about the SEM literature, but otherwise I don't think anyone has done exact asymptotic theory for multilevel mediation analysis. I feel ready to start working on the mixed-effects version of our analysis. I will continue reading, but I think it makes sense to start spending some time writing code.
+
+There are some extensions to the methodology outlined by B \& B that I think we should consider. First, we will want to include direct and indirect effects in addition to our total effects. We can follow \citet{Sam23} for this, although we will also need to give some though to how we incorporate random effects into the definitions. It would also be nice to explicitly estimate the ``mediation proportion''. For continuous response, this is the indirect effect divided by the total effect. It's less clear to me what definition to use for multiplicative effects (e.g. effects on odds-ratio scale).
+
+Second, it is common to include an interaction effect between the exposure and mediator in our model for the outcome\footnote{There is no interaction effect in our trust study because a preliminary analysis found that it didn't have a significant effect on the outcome.}. This isn't conceptually any harder, it just adds another component to our formulas. 
+
+I think that we could address just the above two points and, with some nice Monte Carlo studies, call it a paper. This would resemble the work by \citeauthor{Sam23} (e.g. \citealp{Sam23}). After that, there are some more dramatic extensions we can consider.
+
+One extension that we really should look at is predicted cluster-specific effects. The uncertainty quantification here is subtle; see, e.g., \citet{Skr09,Boo98}. The Imai group does give cluster-specific mediation effects, but only under their restricted framework. Otherwise, this seems to still be an open problem
+
+Finally (for now), I think we should eventually look at sensitivity analysis. There are a bunch of assumptions required for us to give a causal interpretation to our results. My understanding is that sensitivity analysis lets us put a bound on the extent to which these assumptions can be violated without invalidating our conclusions. I'm still looking into how this works.
+
+
+\subsection{May 9}
+
+As far as I can tell, nobody has done exact asymptotics for mixed-effects mediation analysis. I do want to do some more searching, but the recent literature (e.g., since 2020) presents exact formulas for mediation effects with $\delta$-method uncertainty quantification as novel. 
+
+Below, I have summarized a bunch of work on mediation analysis, roughly divided into sections. Section \ref{sec:Sam} covers work by Samoilenko, Lefebvre and others. Their work looks pretty close to what we're doing. They give exact formulas and $\delta$-method UQ, but no random effects. Section \ref{sec:deriv} defines mediation effects in terms of partial derivatives of the mean of $Y$ given $X$. They have done a bit with random effects, but only do Bayesian or bootstrap-based uncertainty quantification. Section \ref{sec:SEM} uses structural equation modelling (SEM) to do mediation analysis. I'm not very familiar with this methodology, but I tried to summarize what I could. Some of these papers do include random effects, but only seem to do continuous response and mediator. They make heavy use of the simple mediation formulas in the fully continuous setting, so uncertainty quantification is pretty basic. Finally, Section \ref{sec:other} is an assortment of papers. Highlights include \citet{Che21}, which gives definitions of direct and indirect effects which we can use, and \citet{Zhe21}, which uses automatic differentiation to get the full Hessian for GLMMs. \citeauthor{Zhe21} also do UQ for the predicted random effects, although I'm still working on understanding exactly how they do this.
+
+\subsubsection{What to do Next}
+
+Next week, my plan is to continue the literature search, focusing on SEMs, the UQ methodology proposed by \citet{Zhe21}, and also looking more widely to see if I've missed any other lines of work. It would be helpful for me if you could look at \citet{Zhe21} to see if you think it has merit. I'm also pretty shaky on SEMs, so it would be nice if you could look at \citet{Zig19} to see how it connects with our methodology.
+
+In terms of advancing our own work, I have finished translating my analysis into \texttt{R}, up to the binary response and mediator. My next steps in this direction for next week are to work out as much as I can for the binary/binary setting with mixed effects. This is going to involve computing the gradient of the mediation effect, and looking for whether \texttt{lme4} gives standard errors for the random effects' covariance parameters. If not, then I will look around for other sources.
+
+Once the mixed-effects case is done, I would like to extend our analysis to the direct and indirect effects. Formulas for these are given in \citet{Sam18} or \citet{Che21}. We should also consider interaction terms between the exposure and mediator in our model for the outcome. I understand that this interaction term arises from causal inference-based concerns, but I'm still fuzzy on the details. \citet{Sam21} extend their previous work on fixed-effects models to include interactions. We also need to extend all of our methods to handle predicted group-specific effects, although this makes the uncertainty quantification more challenging, both conceptually and computationally. See, e.g., \citet{Boo98,Flo19,Zig19}.
+
+
+
+
+
+
+\section{The Samoilenko and Lefebvre group}
+\label{sec:Sam}
+
+This group does essentially what B\&B are proposing with exact formulas and $\delta$-method standard errors. In particular, they avoid any requirement for rare events. They also do direct and indirect effects. However, I haven't seen any mention of random-effects/multilevel-models.
+
+These methods are implemented in the \texttt{R} package \texttt{ExactMed} \citep{Cau23}. This package does not address mixed-effects models.
+
+
+\subsection{\citet{Sam18}}
+
+Gives exact formulas for direct and indirect mediation effects, as well as $\delta$-method standard errors. Binary outcome, binary mediator. No analytical SE when exposure-mediator interaction is present.
+
+\subsection{\citet{Sam21}}
+
+Extends analytical results of \citet{Sam18} to handle exposure-mediator interaction term in model for outcome.
+
+\subsection{\citet{Sam23}}
+
+As \citet{Sam18}, but with continuous mediator and binary response. No mixed-effects. Very nice simulation study.
+
+Compares their approach to those of the Imai group (see Section \ref{sec:Imai}), as well as \citet{Lan12}. Found that the $\delta$-method based approach proposed by the \citeauthor{Sam23} group gives comparable performance with its computationally intensive alternatives.
+
+\subsection{\citet{Cau24}}
+
+Extends the work of \citet{Sam23} to case-control data.
+
+
+\section{Derivative-Based}
+\label{sec:deriv}
+
+Defines mediation effects in terms of derivatives. Originally proposed by \citet{Yu14}, and later extended to multilevel models by \citet{Yu20}. They use the name ``third-variable effect analysis''. Documented extensively in a book by \citet{Yu22}. Implemented in the \texttt{R} packages \texttt{mma} and \texttt{mlma} for single level and multilevel models respectively. The latter uses the bootstrap for UQ.
+
+\subsection{\citet{Mar24}}
+
+Incorporates random-effects in the derivative-based approach. Mostly does Bayesian inference. Mentions bootstrap.
+
+\subsection{\citet{Gel18}}
+
+Defines mediation effects as partial derivatives. Does UQ by bootstrap or by a very rough method called MCCI. This MCCI simulates parameter values from a normal distribution parameterized by the estimates, then evaluates the mediation effects on these simulated parameters. This is the same UQ method used by the Imai group (see Section \ref{sec:Imai}).
+
+
+\subsection{\citet{Dor22}}
+
+Gives exact formulas for mediation effects and $\delta$-method SEs. Decomposes total mediation effect more finely than just direct and indirect (i.e. path-specific effects). No mixed-effects.
+
+\section{Structural Equation Modelling}
+\label{sec:SEM}
+
+There are a bunch of papers which use SEM to do mediation analysis. Many of them include multilevel/mixed-effects models. I'm not very familiar with SEM methodology, but it does seem to be connected with our work. See \citet{Val13} for a review and comparison with the causal-inference framework. Generally limited to linear models (i.e. continuous response and mediator), where the mediation effects' formulas are very simple. They seem to only focus on indirect effects\footnote{There is a short paragraph in \citet{Zit21} near the top of column 1 on page 532 which says ``the direct effect is only of little interest''. They don't give a reference for this.}.
+
+There does seem to be some work on applying mixed-effects methodology to SEMs. See, e.g., \citet{Rab04} for early work in this direction.
+
+I'm not sure yet if this has made its way to the SEM-based mediation analysis literature. I'll look into this next week.
+
+\subsection{\citet{Zig19}}
+
+Review of multilevel mediation analysis using SEM. Does a Monte Carlo study comparing different approaches. UQ is based on \citet{Bau06}.
+
+\subsection{\citet{Bau06}}
+
+Does mixed-effects mediation analysis based on SEMs. Only handles continuous outcome and mediator. Mediation effects are simple enough that variances are computed directly (in terms of asymptotic covariances of the regression parameter estimates). Fits the two regression models (for $M$ and $Y$) simultaneously by concatenating the response vectors and multiplying covariates by indicators.
+
+\subsection{\citet{Pre10}}
+
+Does mediation analysis using structural equation models. Does UQ by bootstrap or based on the exact distribution of the product of two dependent normals \citep{Mac07}.
+
+
+\section{The Imai Group}
+\label{sec:Imai}
+
+This group focuses mainly on the assumptions required to link regression-based mediation analysis with causal inference. They give definitions of mediation effects which closely resemble the ``mediation formula'' \citep{Pea12}, but only for differences of conditional expectation (i.e. the ``risk-difference scale''; see also \citealp{Sam23}). Their approach to UQ is very computational. They recommend either the bootstrap or a simulation-based approach outlined in \citet{Kin00}. Briefly, simulate parameters from their fitted sampling distributions, then evaluate the quantity of interest on each sample and observe the resulting distribution. I think this is connected to empirical Bayes methodology, but I haven't looked into it extensively. They use the name ``quasi-Bayesian confidence intervals'' in their \texttt{R} package. 
+
+Their methods are implemented in the \texttt{R} package \texttt{mediation} \citep{Tin14}. They can handle mixed-effects models, including prediction of group-level effects.
+
+
+\subsection{\citet{Ima10I}}
+
+This paper presents an UQ algorithm for estimating mediation effects defined as differences of expected values. The algorithm closely resembles the bootstrap, but is slightly different. Specifically, parameters are repeatedly sampled from the fitted sampling distributions of their estimators, then mediation effects are estimated using the sampled parameter estimates \citep[see, e.g.,][]{Kin00}. They also give an alternative method which just uses the bootstrap.
+
+Refers to the causal inference theory from \citet{Ima10II} to justify identification of counterfactuals with functions of conditional expectations.
+
+\subsection{\citet{Ima10II}}
+
+Focuses on estimating the indirect effect for a continuous response. Defines this effect as a difference of counterfactuals and identifies this difference with a conditional expectation in the same manner as the mediation formula given by \citet{Pea12}. 
+
+Also gives a ``non-parametric estimator'' for categorical mediator based on a contingency table based approach. The idea is to partition the data based on the mediator, estimate the mediation effect within each group with a difference of averages, then re-combine by averaging.
+
+UQ is given either by the $\delta$-method or by the bootstrap. Some discussion of sensitivity analysis.
+
+
+\subsection{\citet{Ima11}}
+
+Very similar to \citet{Ima10I} and \citet{Ima10II}. Focuses more on causal inference interpretation and applications to political science. Doesn't appear to advance the methodology.
+
+\subsection{\citet{Tin14}}
+
+This paper overviews the \texttt{mediation} package, which implements the methods developed by this group. Can handle GLMMs, but only operates on differences in the expected value of the outcome (i.e. risk-difference scale for binary outcome). Does UQ for parameters \textbf{and predicted random effects}, but doesn't go into detail on how. I'm guessing that it just follows the Monte Carlo method given by \citet{Ima10I}.
+
+Package last updated 2019-10-08
+
+\subsubsection{UQ for Group-Level Effects}
+\label{sec:Imai_UQ}
+
+The \citet{Tin14} paper discusses inference for predicted group-level effects, but doesn't go into detail. As far as I can tell, this is also the only paper from the Imai group which discusses multilevel mediation analysis. Worse still, they give very few references.
+
+After digging into the source code for the \texttt{mediation} package, I found what they do. First, they get predicted group-wise random effects from \texttt{lme4}. Second, it turns out that \texttt{lme4} can give a conditional covariance matrix for the random effects ``conditional on the estimates of the model parameters and on the data''. For now, just note that the full covariance matrix of the random effects is block diagonal, with one block per group. The \texttt{mediation} package uses these group-wise conditional covariance matrices, together with the predicted group-wise means, and simulates random effects for each group (independently, from normal distributions with the corresponding moments). The package then proceeds with its ``quasi-Bayesian'' inference. 
+
+Just a brief note on the conditional covariances given by \texttt{lme4}. Initially, when I was reading this portion of the documentation, I got excited that we might not need the \texttt{merDeriv} package to get standard errors for the random effects' covariance parameters. That's definitely not what I found. These are standard errors for the predicted random effects (conditional on the observed data), not standard errors for the estimators of any model parameters. In particular, the former can be thought of as $K$ separate covariance matrices, one per group, whereas the latter is a single matrix representing estimation uncertainty based on the entire dataset. 
+
+Unfortunately, no references are given in the \texttt{lme4} documentation, but it is fairly clear what is being done. The predicted random effect within a group is the mode of the conditional distribution of the random effects given the observed data from that group (alternatively, the mean; although \texttt{lme4} uses the mode). The prediction standard error given by \texttt{lme4} is the covariance of this same conditional distribution. 
+
+
+\section{The \texttt{SPSS} Macro \texttt{MLmed}}
+\label{sec:MLmed}
+
+This macro appears to be the standard way to do multilevel mediation analysis in \texttt{SPSS}. As such, it is likely to be used extensively by applied researchers, and we should understand it. The macro can only handle continuous outcomes and mediators.
+
+\subsection{\citet{Roc19}}
+
+User manual for the \texttt{MLmed} macro. Can only handle continuous outcomes and mediators. UQ is either by the bootstrap or the ``Monte Carlo method''. See \citet{Pre12} or \citet{Wil08}.
+
+\subsection{\citet{Hay20}}
+
+A recommended reference for the methodology used in the macro.
+
+\subsection{\citet{Roc17}}
+
+A conference poster presenting the macro. Popular reference for people looking to cite the macro.
+
+
+\section{Applications}
+
+It doesn't hurt for us to point to what people are doing in the applied literature. Here is some of what shows up when I search ``multilevel mediation analysis'' on Google Scholar.
+
+\subsection{\citet{Vea19}}
+
+Does multilevel mediation analysis with continuous outcome and mediator. UQ is done with ``Monte Carlo confidence intervals''. Uses an \texttt{SPSS} macro called \texttt{MLmed}. See Section \ref{sec:MLmed}.
+
+\subsection{\citet{Ara21}}
+
+It looks like their variables are all ordinal (1-6 or 1-8 Likert scale). I'm not sure how they fit this into the mediation analysis framework. Moving on, they use \texttt{Mplus} to do their analysis via ``maximum likelihood''. Not much detail given.
+
+\subsection{\citet{Hwa12}}
+
+Follows an earlier edition of \citet{Mac17}, as well as the very early work of \citet{Bar86}. As in \citet{Ara21}, variables are ordinal/Likert. Analysis is done in \texttt{SPSS}, although few details are given. Note that this work was published before the \texttt{SPSS} macro of \citet{Roc19}.
+
+\subsection{\citet{Rij21}}
+
+Review of applied papers using mediation analysis. \textcolor{red}{Read and document this!}
+
+
+\section{Others}
+\label{sec:other}
+
+\subsection{\citet{Kru01}}
+
+Throughout some parts of the literature on multilevel mediation analysis, you will see people talk about, e.g., the 2-1-1 model. This means that the exposure is measured at ``level 2'' (group-level), while the mediator and outcome are measured at ``level 1'' (individual-level). That is, in this model we would include a random effect for the mediator, but not the exposure. Other examples of such models include 2-2-1 and 1-1-1. As far as I can tell, this notation was proposed by \citet{Kru01}.
+
+This paper also does $\delta$-method uncertainty quantification for the very simple mediation effects that people were using at that time (i.e. a product of coefficients). In fact, this approach for testing the presence/absence of mediation effects dates back to \citet{Sob82}.
+
+\subsection{\citet{Ken03}}
+
+Gives a simplistic definition of mediation effects for continuous models. Does UQ based on exact distribution of mediation effects obtained as a transformation of Gaussians. A nice approach, but only really works because of the simple setting.
+
+There is a book by \citet{Mac17} on mediation analysis, which has a whole chapter called ``Multilevel Mediation Models''. However, it is mostly based on the \citet{Ken03} and small extensions. 
+
+\subsection{\citet{Rit04}}
+
+Points-out that, in mixed-effects models, the regression structure for $Y$ only holds conditional on the random effects. Thus, it's hard to give a marginal interpretation of the regression coefficients. They give some conditions under which the conditional mean structure is preserved (in a particular sense) after marginalizing away the random effects. See, e.g., \citet{Neu91} for more discussion of the problem being addressed.
+
+I think I'm missing something here, because it seems obvious to me that there will be a difference between the parameters in an assumed regression model for the marginal mean of $Y$ and the conditional mean of $Y$ given the random effects. Regardless, I don't think this one is particularly relevant to us. We have a conditional regression model and don't make any effort to model the marginal mean of $Y$ using regression.
+
+
+\subsection{\citet{Van10}}
+
+Standard reference for mediation analysis with binary outcome. Focuses on the causal inference aspects of the problem. Makes heavy use of the ``rare outcome'' assumption. Resulting model is sufficiently simple that UQ is easy.
+
+
+\subsection{\citet{Pea12}}
+
+Presents the so-called ``mediation formula''. A set of identities for the total, direct and indirect mediation effects based on counterfactuals, but expressed in terms of conditional expectations. Effects are on risk-difference scale.
+
+\subsection{\citet{Lan12}}
+
+Proposes estimating mediation effects using inverse probability weighting. Duplicates the observed data and uses weighting to estimate unobserved counterfactual outcomes. Referred to as the ``weighting method''. Does give analytical (asymptotic) standard errors based on the sandwich variance estimator that arises from the theory of generalized estimating equations. See their ``Web Appendix 3'' for more details. They also suggest using the bootstrap. 
+
+Implemented in the \texttt{R} package \texttt{medflex} \citep{Ste17} alongside the imputation method of \citet{Van12}.
+
+\subsection{\citet{Van12}}
+
+Proposes estimating mediation effects using regression-based imputation. Recall that the indirect and direct mediation effects depend on unobservable nested counterfactuals of the form $\phi(x, x') := Y(x, M(x'))$, where $x \neq x'$. \citet{Van12} proposes to estimate these counterfactuals directly by first fitting a regression model for the dependence of $\phi$ on $x$ and $x'$ using configurations of these covariates (i.e. the exposure) observed in the data. We then use this regression model to predict the value of $\phi$ at unobserved configurations.
+
+Caution: This whole method is based on extrapolating from a regression model into a region where we, by definition, have no information. The usual warnings apply, both philosophical and practical (e.g. don't include high-order polynomial terms in your regression model).
+
+Implemented in the \texttt{R} package \texttt{medflex} \citep{Ste17} alongside the weighting method of \citet{Lan12}.
+
+\subsection{\citet{Nev17}}
+
+Does inference for mediation effects defined using the ``difference method''. Briefly, fit models to predict $Y$ using $X$ with or without $M$, then check how much the coefficient on $X$ changes. They apply their analysis to continuous, binary (log- and logit-link), and survival data (Cox model).
+
+Inference is done with the $\delta$-method. They need the covariance between coefficient estimates from different models (i.e. with and without $M$). Since this doesn't come directly from a standard analysis, they propose a ``data duplication algorithm''.
+
+No mixed effects. Not obviously relevant.
+
+
+\subsection{\citet{Che21}}
+
+Defines mediation effects (indirect and direct) as differences between transformed conditional expectations. This facilitates use with GLM link functions. Does continuous and binary outcome and mediator using GEEs. Does UQ with $\delta$-method. 
+
+Includes a Monte Carlo study comparing $\delta$-method with bootstrap. Finds that pretty large samples are required for $\delta$-method UQ to be accurate, although bootstrap works with somewhat smaller samples.
+
+No mixed-effects.
+
+Does $\delta$-method UQ for GLMs (more precisely, GEEs) with exact formulas for mediation effects. These mediation effects (indirect and direct effects) are defined as differences between transformed conditional expectations. 
+
+
+\subsection{\citet{Zhe21}}
+
+Does joint uncertainty quantification for the parameters and random effects. Based on maximizing the Laplace Approximation to the marginal likelihood. Gives $\delta$-method SEs with gradients from automatic differentiation.
+
+Based on the \texttt{R} package \texttt{TMB}, which does automatic differentiation \citep{Kri16}. There is a related package, \texttt{glmmTMB}, which is specifically designed to apply automatic differentiation methods to GLMMs \citep{Bro17} (their paper focuses on zero-inflated count GLMMs, but their methodology applies more generally). \citet{Zhe21} raises some concerns about the two \texttt{TMB} packages, and presents a solution. See \citet{Ska06} for more discussion of automatic differentiation in GLMM fitting.
+
+\subsection{\citet{Wan18}}
+
+Standard reference for the \texttt{merDeriv} package in \texttt{R}. This is a small package that computes the Hessian of the observed data likelihood with respect to all parameters (including RE covariance parameters) for LMMs and GLMMs fit using \texttt{lme4}. In particular, use the \texttt{vcov} function with \texttt{full=TRUE} to get the asymptotic covariance matrix of the parameters (i.e. the inverse of the negative Hessian of the log-likelihood). You can also choose your parameterization for the RE parameters from variances, SDs or terms in the Cholesky decomposition. The last one is referred to as \texttt{theta} in \texttt{lme4} and is used extensively therein.
+
+
+
+\chapter{Implementation}
+
+I don't have a whole lot to say here. I implemented the $\delta$-method based uncertainty quantification developed by B \& B for the total mediation effect. Please see the RMarkdown document and accompanying PDF called ``William Analysis.Rmd'' and ``William-Analysis.pdf'' for discussion and results.
+
+My findings for the fixed-effects models look pretty reasonable. However, the mixed-effects setting is much less nice. I'm still exploring why this is happening. I hope to have more to say here soon.
+
+
+
+\chapter{Extension to Other Mediation Effects}
+
+In this chapter, we develop definitions and formulas for the direct and indirect mediation effects to complement the total effect given by B \& B. We follow the work of \citet{Pea12} and the Samoilenko and Lefebvre group (e.g., \citealp{Sam23}). 
+
+\section{Expected Nested Counterfactuals}
+\label{sec:nest_CFs}
+
+To start, we define the nested counterfactual $Y(x, M(x'))$ as the value that $Y$ would assume when $X$ is set to $x$ and $M$ is set to whatever value it would have assumed if we had set $X$ to $x'$. \citet{Pea12} identifies the expected value of this nested counterfactual with the following expression based on conditional expectations:
+%
+\begin{align}
+    \bE Y(x, M(x')) = \int \bE(Y | M=m, X=x) \bP(M = dm | X = x') \label{eq:med_gen}
+\end{align}
+%
+Focusing now on the case with binary response and binary mediator, \ref{eq:med_gen} becomes
+%
+\begin{multline}
+    \bE Y(x, M(x')) = \bP(Y=1 | M=1, X=x) \bP(M=1 | X=x') + \\\bP(Y=1 | M=0, X=x) \bP(M=0 | X=x') \label{eq:med_bin}
+\end{multline}
+%
+Consider using  logistic regression models for $Y$ and $M$. Write $\mathrm{logit}(\bE(Y | M=m, X=x)) = \beta_0 + \beta_m m + \beta_x x$ and $\mathrm{logit}(\bE(M | X=x)) = \alpha_0 + \alpha_x x$. Then (\ref{eq:med_bin}) becomes
+%
+\begin{multline}
+    \bE Y(x, M(x')) = \frac{1}{1 + \exp(-\beta_0 - \beta_m - \beta_x x)} \cdot \frac{1}{1 + \exp(-\alpha_0 - \alpha_x x')} +\\
+    \frac{1}{1 + \exp(-\beta_0 - \beta_x x)} \cdot \frac{1}{1 + \exp(\alpha_0 + \alpha_x x')} \label{eq:med_bin_fix}
+\end{multline}
+%
+Equation (\ref{eq:med_bin_fix}) holds for logistic regression with fixed-effects only. If we instead use  mixed-effects logistic regressions for $Y$ and $M$, then (\ref{eq:med_gen}) and (\ref{eq:med_bin}) still hold, but (\ref{eq:med_bin_fix}) must be modified. For the mixed-effects models, first write $V = (V_0, V_m, V_x) \sim \mathrm{N}(0, \Sigma_V)$ and $U = (U_0, U_x) \sim \mathrm{N}(0, \Sigma_U)$ for the random-effects in our models for $Y$ and $M$ respectively. Next, write $\mathrm{logit}(\bE(Y | V, M=m, X=x)) = (\beta_0 + V_0) + (\beta_m + V_m) m + (\beta_x + V_x) x$ and $\mathrm{logit}(\bE(M |U, X=x)) = (\alpha_0 + U_0) + (\alpha_x + U_x) x$. Returning now to identification of the expected counterfactual for $Y$, we get
+%
+\begin{align}
+    \bE Y(x, M(x')) =& \left[\int \bP(Y=1 |V=v, M=1, X=x) \bP(V = dv)\right] \cdot \\
+    & \left[\int \bP(M=1 |U=u, X=x') \bP(U=du)\right] +\\
+     & \left[\int \bP(Y=1 |V=v, M=0, X=x) \bP(V = dv)\right] \cdot \\
+     & \left[\int \bP(M=0 |U=u, X=x') \bP(U=du)\right]
+\end{align}
+%
+and, in the logistic regression context,
+%
+\begin{align}
+    \bE Y(x, M(x')) =& \left[ \int \frac{\phi(v; 0, \Sigma_V)}{1 + \exp(-(\beta_0 + v_0) - (\beta_m + v_m) - (\beta_x + v_x) x)}  dv \right] \cdot \label{eq:med_bin_ran}\\
+    &\left[ \int \frac{\phi(u; 0, \Sigma_U)}{1 + \exp(-(\alpha_0 + u_0) - (\alpha_x + u_x) x')}  du \right] + \nonumber\\
+    & \left[\int \frac{\phi(v; 0, \Sigma_V)}{1 + \exp(-(\beta_0 + v_0) - (\beta_x + v_x) x)} dv \right] \cdot \nonumber\\
+    & \left[\int \frac{\phi(u; 0, \Sigma_U)}{1 + \exp((\alpha_0 + u_0) + (\alpha_x + u_x) x')} du \right], \nonumber
+\end{align}
+%
+where $\phi(.; \mu, \Sigma)$ is the multivariate normal density with mean $\mu$ and covariance matrix $\Sigma$. 
+
+Note that the four integrals in (\ref{eq:med_bin_ran}) are all multivariate, but can be transformed to univariate integrals by suitable changes of variables. To this end, write $\eta = \alpha_0 + \alpha_x x$ and $\zeta = \beta_0 + \beta_x x$ for two linear predictors (note that $\zeta$ does not contain $\beta_m$), and $\gamma^2_\Sigma(c_1, \ldots, c_r) = (c_1, \ldots, c_r) \Sigma (c_1, \ldots, c_r)^T$, where $\Sigma$ is an $r$-by-$r$ covariance matrix. We will generally set $\Sigma = \Sigma_V$ or $\Sigma = \Sigma_U$, in which case we write $\gamma^2_V$ or $\gamma^2_U$ respectively. We now define the function $\psi$ as a template for the four integrals in (\ref{eq:med_bin_ran}). 
+%
+$$
+\psi(\mu, \sigma^2) := \int \frac{\phi(z; 0, 1)}{1 + \exp(-\mu - \sigma z)} dz.
+$$
+%
+Note that $\psi$ is a univariate integral, so we can expect it to be well-approximated by routine numerical quadrature techniques. We now re-write (\ref{eq:med_bin_ran}) in terms of $\psi$ as follows,
+%
+\begin{align}
+    \bE Y(x, M(x')) =& \psi(\zeta + \beta_m, \gamma^2_V(1, 1, x)) \cdot \psi(\eta, \gamma^2_U(1, x)) +\\
+    & \psi(\zeta, \gamma^2_V(1, 0, x)) \cdot \psi(-\eta, \gamma^2_U(1, x)). \nonumber 
+\end{align}
+
+
+\section{Mediation Effects}
+Denote the expected nested counterfactual defined in (\ref{eq:med_gen}) by $\sY(x, x') = \bE Y(x, M(x'))$. We can define the various mediation effects in terms of expected counterfactuals. Note that mediation effects for a binary outcome are commonly defined on three different scales: risk difference, risk ratio and odds ratio. Table \ref{tab:med_eff_defs} gives all such definitions explicitly. In the rest of this section, we outline the processes of estimation and uncertainty quantification for the mediation effects defined in Table \ref{tab:med_eff_defs}.
+
+
+%
+\begin{table}[ht]
+    \centering
+    \caption{Definitions of various mediation effects; $x$ and $x'$ denote different values of the exposure.}
+    \label{tab:med_eff_defs}
+    \begin{tabu}{|[1pt]c|[1pt]c|c|[1pt]}
+        \tabucline[1pt]{-}
+        \multirow{3}{*}{Risk Difference} & Total Effect & $\sY(x, x) - \sY(x', x')$ \\
+        \cline{2-3}
+        & Direct Effect & $\sY(x, x') - \sY(x', x')$\\
+        \cline{2-3}
+        & Indirect Effect & $\sY(x, x) - \sY(x, x')$ \\
+        \tabucline[1pt]{-}
+        \multirow{3}{*}{Risk Ratio} & Total Effect & $\sY(x, x) / \sY(x', x')$ \\
+        \cline{2-3}
+        & Direct Effect & $\sY(x, x') / \sY(x', x')$\\
+        \cline{2-3}
+        & Indirect Effect & $\sY(x, x) / \sY(x, x')$ \\
+        \tabucline[1pt]{-}
+        \multirow{3}{*}{Odds Ratio} & Total Effect & $\left. \frac{\sY(x, x)}{1 - \sY(x, x)} \right/ \frac{\sY(x', x')}{1 - \sY(x', x')} $\\
+        \cline{2-3}
+        & Direct Effect & $\left. \frac{\sY(x, x')}{1 - \sY(x, x')} \right/ \frac{\sY(x', x')}{1 - \sY(x', x')} $\\
+        \cline{2-3}
+        & Indirect Effect & $\left. \frac{\sY(x, x)}{1 - \sY(x, x)} \right/ \frac{\sY(x, x')}{1 - \sY(x, x')} $\\
+        \tabucline[1pt]{-}
+    \end{tabu}
+\end{table}
+
+
+\subsection{Estimation}
+
+Mediation effects are all defined in terms of the expected nested counterfactuals, $\sY(x, x')$. As such, the estimation of any mediation effect given in Table \ref{tab:med_eff_defs} centers around estimation of $\sY$. To this end, write $\theta$ for all parameters upon which $\sY$ depends. That is, $\theta$ contains both sets of regression coefficients, $\beta_0, \beta_m, \beta_x$ and $\alpha_0, \alpha_x$, as well as both sets of covariance parameters. For consistency with B \& B, we parameterize these as $\tau_0, \tau_m, \tau_x$ for the standard deviations of $V_0, V_m, V_x$, and $\tau_{0,m}, \tau_{0,x}, \tau_{m,x}$ for the corresponding correlations\footnote{While our notation doesn't match that given by B \& B, parameterizing in terms of the standard deviations and correlations does. Alternative choices include the variances and covariances, or the unique components of the Cholesky factorizations of $\Sigma_V$ and $\Sigma_U$ \citep{Wan18}.}. Similarly, we use $\sigma_0, \sigma_x$ for the standard deviations of $U_0, U_x$, and $\sigma_{0,x}$ for their correlation. We are now equipped to write-out $\theta$ in full. The order of parameters is chosen to match my code (and to avoid refactoring thereof).
+$$
+\theta = (\alpha_0, \alpha_x, \sigma_0, \sigma_x, \sigma_{0,x}, \beta_0, \beta_m, \beta_x, \tau_0, \tau_m, \tau_x, \tau_{0,m}, \tau_{0,x}, \tau_{m,x})
+$$
+%
+In order to estimate $\theta$, we fit two mixed-effects logistic regression models. The first model predicts the mediator, $M$, using the exposure, $X$, while the second predicts the outcome, $Y$, using $M$ and $X$. Both models also contain intercepts. We include random effects for all regression coefficients in both models. \textcolor{red}{Either or both models may also contain one or more confounders, $\mathbf{C}$, although we assign these confounders only fixed effects.} Following the algorithm used by the \texttt{lme4} package in \texttt{R} \citep{Bat15, Wal23}, we estimate the parameters in both regression models by maximizing an approximation to the marginal likelihood of the response ($M$ or $Y$). This approximation is obtained using Laplace's Method, with a penalized iteratively re-weighted least squares algorithm maximizing to maximize the joint likelihood of the observed data and the random effects. Applying this procedure to both of our regression models yields estimates for all components of $\theta$.
+
+Combining our estimate of $\theta$ with Equation \ref{eq:med_bin_ran} from Section \ref{sec:nest_CFs} and the formulas given in Table \ref{tab:med_eff_defs}, we are now able to estimate all mediation effects on the three scales we consider. It remains however, to address uncertainty quantification.
+
+
+\subsection{Uncertainty Quantification}
+
+As mentioned above, all mediation effects are defined in terms of expected nested counterfactuals $\sY$, which themselves depend on the parameter vector $\theta$. Quantification of uncertainty for our estimator of a mediation effect thus proceeds in three stages. First, we obtain a covariance matrix for our estimator of $\theta$. Second, we apply the $\delta$-method to get a joint covariance matrix for all values of $\sY$ required to evaluate the mediation effect of interest. Finally, we use the $\delta$-method again to translate uncertainty in the $\sY$s to uncertainty in the mediation effect. In fact, we can obtain the covariance matrix for all three mediation effects defined on a particular scale (e.g., risk ratio), or, indeed, between all nine mediation effects given in Table \ref{tab:med_eff_defs}. Note that the variances and covariances discussed above are asymptotic. 
+
+We now proceed with the three steps discussed above, starting with an asymptotic covariance matrix for $\theta$. \textcolor{red}{For now, we treat the two regression models as independent. That is, we assume that the covariance between all parameter estimators in our $M$ model and all parameter estimators in our $Y$ model are zero. This is likely not true; call it a working assumption. See \citet{Bau06} for a method to model this inter-model dependence.} This step is fairly straightforward, since both regression models are fit using (approximate) maximum likelihood. We simply compute the negative Hessian of the marginal log-likelihood for the observed data in both models, and stack the results into a block-diagonal matrix. Call the resulting covariance matrix $\hat{\Sigma}_\theta$. This computation is performed by the \texttt{merDeriv} package in \texttt{R} \citep{Wan18}.
+
+To quantify uncertainty in $\sY$ based on our estimator for $\theta$, we use the $\delta$-method \citep[see, e.g., Chapter 3 of][]{vdV98}. Briefly, given the asymptotic covariance of our estimator for $\theta$, $\sqrt{n}(\hat{\theta} - \theta) \rightsquigarrow \mathrm{N}(0, \Sigma)$, the asymptotic covariance of some function of our estimator can be obtained by differentiating that function and multiplying by the limiting distribution. That is, $\sqrt{n}[f(\hat{\theta}) - f(\theta)] \rightsquigarrow \nabla f(\theta)\mathrm{N}(0, \Sigma) \overset{d}{=} \mathrm{N}(0, \nabla f(\theta) \Sigma \nabla f(\theta)^T)$. We estimate this limiting covariance by $\nabla f(\hat{\theta}) \hat{\Sigma} \nabla f(\hat{\theta})^T$, where typically $\Sigma = \Sigma(\theta)$ and $\hat{\Sigma} = \Sigma(\hat{\theta})$.
+
+Returning now to our problem, in order to apply the $\delta$-method we need the gradient of $\sY$ with respect to $\theta$. While tedious, this calculation is easily performed with the help of symbolic differentiation software like Maple \citep{Map20}. Next, we evaluate our gradient formula at $\hat{\theta}$, $\left. \nabla \sY \right|_{\theta = \hat{\theta}}$, then pre- and post-multiply $\hat{\Sigma}_\theta$ by this estimated gradient. If we require the covariance matrix for multiple values of $\sY$ (e.g., $\sY(x,x)$ and $\sY(x,x')$ for some $x \neq x'$), we frame the problem as a vector-valued transformation, and compute the Jacobian by stacking the gradient for each individual $\sY$. More precisely, to get a covariance matrix for $\sY_1, \ldots, \sY_r$, we first construct the $r$-by-$|\theta|$ Jacobian matrix $\mathcal{J} := [\nabla \sY_1, \ldots, \nabla \sY_r]$. We then evaluate $\mathcal{J}$ at $\theta = \hat{\theta}$, call the result $\hat{\mathcal{J}}$, and pre- and post-multiply $\hat{\Sigma}_\theta$ by $\hat{\mathcal{J}}$, giving $\hat{\mathcal{J}} \hat{\Sigma}_\theta \hat{\mathcal{J}}^T$.
+
+Finally, to get the asymptotic variance of one or more estimated mediation effects, we just apply the $\delta$-method to the corresponding formulas from Table \ref{tab:med_eff_defs}. Since the mediation effects are all simple functions of the $\sY$, any gradients required for this step are easily obtained.
+
+
+\section{To Do}
+\begin{itemize}
+    \item Incorporate an interaction term between $X$ and $M$ in the model for $Y$.
+    \item Explore dependence between the models for $M$ and $Y$ using the `stacking' technique described in \citet{Bau06}. This will give non-zero covariance between parameter estimators from the two models.
+    \item Incorporate covariates/confounders
+\end{itemize}
+
+
+\bibliography{../Literature_Review/Lit_Review_Bib}
+
+\end{document}
