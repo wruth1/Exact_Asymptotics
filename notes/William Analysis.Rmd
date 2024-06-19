@@ -1085,6 +1085,8 @@ num_reps = 200
 # Easier version of problem
 all_Ns = c(200, 500)
 all_Ks = c(5, 20)
+N_K_combs = expand.grid(N = all_Ns, K = all_Ks)
+
 
 sigma_a_0 = 0.5
 sigma_a_1 = 0.5 * abs(a_1)
@@ -1129,8 +1131,8 @@ all_med_SEs = list()
 
 # Initialize cluster on my machine ----
 # n_cores = 2
-# n_cores = 10
-n_cores = parallel::detectCores() - 1
+n_cores = 10
+# n_cores = parallel::detectCores() - 1
 my_cluster = makeCluster(n_cores, type = "PSOCK")
 registerDoParallel(my_cluster)
 clusterEvalQ(my_cluster,{

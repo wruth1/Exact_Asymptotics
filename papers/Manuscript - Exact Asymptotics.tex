@@ -5,6 +5,7 @@
 \usepackage{caption, subcaption}
 \usepackage{graphicx}
 \usepackage{bm}             % For bold math symbols
+\usepackage{soul}
 
 \usepackage{natbib}
 \bibliographystyle{plainnat}
@@ -21,11 +22,67 @@
 \newcommand{\zdens}{\frac{e^{-z^2/2}}{\sqrt{2\pi}}}
 
 
-\title{Review of the Literature on Exact Formulas for Mediation Effects}
+\title{Analytical Uncertainty Quantification for Multilevel Mediation Analysis}
 
 \begin{document}
 
 \maketitle
+
+\section{Introduction}
+
+Mediation analysis is a central problem in modern causal inference. Many scientific and public health questions have the form of separating the direct effect of some exposure on an outcome from the indirect effect of that exposure via a mediator. Many authors have developed methods to address this problem; gradually increasing in complexity. Early work by \citet{Bar86} laid the foundation for future developments, but did not use the machinery of counterfactual outcomes. 
+
+There have been several approaches to the analysis of causal mediation. One group established a non-parametric identification result \citep{Ima10II}, and used this result to estimate mediation effects in various contexts \citep{Ima10I, Ima11}. Their methodology is implemented in the \texttt{R} package \texttt{mediation} \citep{Tin14}. Note that this group only estimates mediation effects as expected differences in counterfactuals, so if the outcome is binary then mediation effects are only available on the risk-difference scale.
+
+Another approach began with the work of \citet{Van09} on continuous outcomes, and was later extended to handle various modifications to the basic model \citep{Van10, Van13, Van14}. Of particular interest to us is the modification to handle binary outcomes \citep{Van10}. Effects are defined on the odds-ratio scale, and the outcome is assumed to be rare. Later work by \citet{Sam21} removes the rare-outcome assumption and extends the work of \citet{Van09} to handle effects on the risk-difference, risk-ratio and odds-ratio scales. See also \citet{Sam18,Sam23} for more details.
+
+Briefly, causal mediation analysis is based on the counterfactual, or potential outcome framework. Let $Y$ be an outcome of interest and $X$ be an exposure. We write $Y(x)$ for the value $Y$ would have attained if, possibly counter to fact, $X$ had been set to the value $x$. Introducing a mediator, $M$, we write $M(x)$ for the value $M$ would have attained if $X=x$, and $Y(x, m)$ for the value of $Y$ when $X=x$ and $M=m$. Note that every individual in the population has values for each of the above quantities, $Y(x)$, $M(x)$, $Y(x,m)$ at every possible value of $x$ and $m$. Unfortunately, in practice we only observe $Y$ and $M$ for the values of $x$ and $m$ which actually occurred. This is known as the ``fundamental problem of causal inference'' \citep{Din18, Hol86}. 
+
+The standard approach to solving this fundamental problem is to avoid estimating individual-level counterfactuals and instead estimate population averages thereof. Under standard assumptions, such as consistency and no unmeasured confounders \citep[see, e.g.,][]{Pea09}, we can estimate expected conterfactuals as functions of conditional expectations. From this point, mediation analysis reduces to a problem of classical statistics; one which can be solved using traditional regression methodology. The difference between continuous and binary outcomes (or mediators) is essentially addressed by choosing between linear and logistic regression. Other data types (e.g., count, survival), or more flexible relationships (e.g., splines), can also be incorporated by selecting the appropriate regression methodology.
+
+One extension which is of particular interest is to dependent data via multilevel, or mixed-effects, models. Mixed-effects regression models involve the introduction of random, unobserved coefficients to an existing regression \hl{(awk)}. A common setting in which such a model arises is clustered data, where the random coefficients differ across clusters, but are constant within each cluster. See, e.g., \citet{Dem04} for an overview of mixed-effects methodology. When applied to mediation analysis, mixed-effects methods allow for modelling group-specific mediation effects, and the effect of this heterogeneity on the estimation of global effects.
+
+In this paper, we present a general framework for multilevel mediation analysis based on the estimation of nested counterfactuals. In particular, our method can be applied to estimate mediation effects on whatever scale is of interest (e.g., risk difference, risk ration, odds ratio). 
+
+
+
+\section{Multilevel Mediation Analysis}
+
+In this section, we define the total, direct and indirect mediation effects in terms of nested counterfactuals. We begin by applying the Mediation Formula of \citet{Pea12} to identify nested counterfactuals with simple functions of conditional expectations.
+
+We begin by observing that mediation effects are often defined in terms of nested counterfactuals (regardless of the scale on which these effects are reported). \hl{There is some causal inference theory to be done here. For now, I'm just going to write what I expect to be true, then later I will go back and add the necessary assumptions.} As such, we begin by identifying a general nested counterfactual with estimable quantities. To this end, write $Y(x, m)$ for the counterfactual value of $Y$ when $X$ and $M$ are set to $x$ and $m$ respectively. Similarly, write $M(x)$ for the counterfactual value of $M$ when $X=x$. We write $Y(x, M(x'))$ for the value of $Y$ when $X$ is set to $x$ and $M$ is set to what it would have been if $X$ were $x'$. We refer to $Y(x, M(x'))$ as a nested counterfactual. Note that, when $x \neq x'$, the nested counterfactual is necessarily unobservable. Nevertheless, given regularity conditions, we can write
+%
+\begin{equation}
+    \bE Y(x, M(x')) = \int \bE(Y | M=m, X=x) \bP(M = dm | X = x') \label{eq:id_nest}
+\end{equation}
+%
+A similar expression holds conditional on pre-treatment covariates,
+\begin{equation}
+    \bE Y_c(x, M(x')) = \int \bE(Y | M=m, X=x, C=c) \bP(M = dm | X = x', C=c) \label{eq:id_nest_cov}
+\end{equation}
+%
+Having identified expected nested counterfactuals with integrals of conditional quantities, we can use regression to estimate the RHS of Equations \ref{eq:id_nest} and \ref{eq:id_nest_cov}. This identification with regression-based quantities is especially simple if $M$ is binary. Here, we get $\bP(M=m | \cdot) = \bE(M=m | \cdot)$, where the latter quantity is popularly modelled with logistic regression. For simplicity, we hereafter assume that the mediator, $M$, is binary. \hl{If not, we need to do something different. One option is to extract the conditional density of $(M | \cdot)$, then perform the integral. Another is to do regression with response $\bE(Y | M=m, X=x, C=c)$, viewed as a function of $m$. There is likely an equivalence between these two methods; I can come back to this later.}
+
+The above development allows only fixed-effects in the regression models. If we want to also incorporate random effects, we simply view Equations \ref{eq:id_nest} and \ref{eq:id_nest_cov} as having had these random effects marginalized out. That is, if we write $U$ and $V$ for the random effects in our models for $Y$ and $M$ respectively, and $G_V$, $G_V$ for the random effects' distributions, then we can re-write Equations \ref{eq:id_nest} and \ref{eq:id_nest_cov} as
+%
+\begin{align}
+    \bE Y(x, M(x')) &= \int \bE(Y | U=u, M=m, X=x) \bP(M = dm |V=v, X = x') G_U(du) G_V(dv) \label{eq:ran_id_nest} \\
+    \bE Y_c(x, M(x')) &= \int \bE(Y | U=u, M=m, X=x, C=c) \bP(M = dm | V=v, X = x', C=c) G_U(du) G_V(dv) \label{eq:ran_id_nest_cov}
+\end{align}
+
+\subsection{Ideas for CI Theory}
+Applying the Counterfactual Unnesting Theorem of \citet{Cor21}, and provided that the conditions specified therein are satisfied, we have
+
+Alternatively, see Theorem 1 of \citet{Ima10I}. This is specifically the result I want, not the corresponding identification results of \citet{Ima10II}, which focuses more narrowly on identification of mediation effects. Note that, in \citet{Ima10I}, the function $f$ is a density (with respect to some unspecified measure, possibly counting measure). In order to get the above formulas for expected values of $Y$, we do need to assume that $\bE Y$ is finite so we can apply Fubini's Theorem (the one for finite integrals).
+
+
+
+
+\section{Estimation and Inference}
+
+
+
+
 
 \section{Summary and Future Work}
 
@@ -199,37 +256,6 @@ Just a brief note on the conditional covariances given by \texttt{lme4}. Initial
 Unfortunately, no references are given in the \texttt{lme4} documentation, but it is fairly clear what is being done. The predicted random effect within a group is the mode of the conditional distribution of the random effects given the observed data from that group (alternatively, the mean; although \texttt{lme4} uses the mode). The prediction standard error given by \texttt{lme4} is the covariance of this same conditional distribution. 
 
 
-\section{\citeauthor{Van10}}
-
-In a sequence of papers over the early-to-mid 2010s, \citeauthor{Van10} developed much of the theory for causal-based mediation analysis. Unfortunately, they make extensive use of the ``rare event'' assumption. Nevertheless, many of their papers have been influential, and they are certainly worth cataloging here.
-
-\subsection{\citet{Van09}}
-
-This paper lays out the basic theoretical assumptions required for causal mediation analysis. These include consistency, composition and no unmeasured confounders. They also define the various direct and indirect effects which are typically of interest, and discuss how to estimate these effects using regression (provided, of course, that the necessary assumptions are satisfied). The focus is entirely on continuous outcome and mediator, although they do address conditional mediation effects given covariates/confounders, and averaging over the confounder(s) to recover marginal effects. Next, they give several pages' discussion of how to think about the various assumptions. Finally, an appendix gives proofs of the asserted regression-based formulas, alongside some simple uncertainty quantification.
-
-This is really a foundational paper, and is worth citing in pretty much any work on causal mediation analysis.
-
-\subsection{\citet{Van10}}
-
-This paper modifies the work of \citet{Van09} to handle a binary outcome, although the mediator is still taken to be continuous. Results are presented on odds-ratio scale. They set-up their analysis exactly, but then present their results under the rare-outcome assumption. As far as I can tell, this is done to simplify formulas. The estimators they end up with are sufficiently simple that uncertainty quantification is easy.
-
-This paper is a standard reference for mediation analysis with a binary outcome.
-
-\subsection{\citet{Van13}}
-
-This paper extends the work of \citet{Van09} to handle multiple mediators.
-
-\subsection{\citet{Van14}}
-
-This paper extends the work of \citet{Van09} by giving an alternative decomposition of the total effect. The goal of this decomposition is to separate mediation from interaction between the exposure and mediator.
-
-\subsection{\citet{Van15}}
-
-A book, which consolidates much of the work of this group from the previous decade.
-
-
-
-
 \section{The \texttt{SPSS} Macro \texttt{MLmed}}
 \label{sec:MLmed}
 
@@ -291,7 +317,9 @@ Points-out that, in mixed-effects models, the regression structure for $Y$ only 
 I think I'm missing something here, because it seems obvious to me that there will be a difference between the parameters in an assumed regression model for the marginal mean of $Y$ and the conditional mean of $Y$ given the random effects. Regardless, I don't think this one is particularly relevant to us. We have a conditional regression model and don't make any effort to model the marginal mean of $Y$ using regression.
 
 
+\subsection{\citet{Van10}}
 
+Standard reference for mediation analysis with binary outcome. Focuses on the causal inference aspects of the problem. Makes heavy use of the ``rare outcome'' assumption. Resulting model is sufficiently simple that UQ is easy.
 
 
 \subsection{\citet{Pea12}}
@@ -343,7 +371,6 @@ Based on the \texttt{R} package \texttt{TMB}, which does automatic differentiati
 Standard reference for the \texttt{merDeriv} package in \texttt{R}. This is a small package that computes the Hessian of the observed data likelihood with respect to all parameters (including RE covariance parameters) for LMMs and GLMMs fit using \texttt{lme4}. In particular, use the \texttt{vcov} function with \texttt{full=TRUE} to get the asymptotic covariance matrix of the parameters (i.e. the inverse of the negative Hessian of the log-likelihood). You can also choose your parameterization for the RE parameters from variances, SDs or terms in the Cholesky decomposition. The last one is referred to as \texttt{theta} in \texttt{lme4} and is used extensively therein.
 
 
-
-\bibliography{../../Bib-Exact_Asymptotics}
+\bibliography{../Bib-Exact_Asymptotics}
 
 \end{document}
