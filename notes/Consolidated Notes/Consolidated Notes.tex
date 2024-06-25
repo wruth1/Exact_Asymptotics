@@ -50,7 +50,7 @@ In the interest of minimizing the amount of re-writing necessary, I have organiz
 
 \subsection{May 23}
 
-I'm just finishing-up my code for the binary response, binary mediator, mixed effects case. My analysis is running, but the output doesn't look right, so I need to do some debugging. 
+I'm just finishing-up my code for the binary response, binary mediator, mixed effects case. My analysis is running, but the output doesn't look right so I need to do some debugging. 
 
 I now better understand the uncertainty quantification method used by the Imai group. See Section \ref{sec:Imai_UQ} for details. Briefly, they do a Monte Carlo analog of the $\delta$-method. If the target of inference is a function of some model parameters, they start by estimating the sampling distribution of our estimator for those model parameters. They then simulate from this estimated sampling distribution and evaluate the function of interest on each simulated observation. This produces a sample from the pushforward measure induced on the target of inference by our estimated sampling distribution for the model parameters. It's not completely clear to me how they generate confidence intervals from the Monte Carlo samples, but they call their method ``quasi-Bayesian'', so I suspect it's just percentile intervals. 
 
@@ -218,6 +218,41 @@ Just a brief note on the conditional covariances given by \texttt{lme4}. Initial
 Unfortunately, no references are given in the \texttt{lme4} documentation, but it is fairly clear what is being done. The predicted random effect within a group is the mode of the conditional distribution of the random effects given the observed data from that group (alternatively, the mean; although \texttt{lme4} uses the mode). The prediction standard error given by \texttt{lme4} is the covariance of this same conditional distribution. 
 
 
+\section{\citeauthor{Van10}}
+
+In a sequence of papers over the early-to-mid 2010s, \citeauthor{Van10} developed much of the theory for causal-based mediation analysis. Unfortunately, they make extensive use of the ``rare event'' assumption. Nevertheless, many of their papers have been influential, and they are certainly worth cataloging here.
+
+\subsection{\citet{Van09}}
+
+This paper lays out the basic theoretical assumptions required for causal mediation analysis. These include consistency, composition and no unmeasured confounders. They also define the various direct and indirect effects which are typically of interest, and discuss how to estimate these effects using regression (provided, of course, that the necessary assumptions are satisfied). The focus is entirely on continuous outcome and mediator, although they do address conditional mediation effects given covariates/confounders, and averaging over the confounder(s) to recover marginal effects. Next, they give several pages' discussion of how to think about the various assumptions. Finally, an appendix gives proofs of the asserted regression-based formulas, alongside some simple uncertainty quantification.
+
+This is really a foundational paper, and is worth citing in pretty much any work on causal mediation analysis.
+
+\subsection{\citet{Van10}}
+
+This paper modifies the work of \citet{Van09} to handle a binary outcome, although the mediator is still taken to be continuous. Results are presented on odds-ratio scale. They set-up their analysis exactly, but then present their results under the rare-outcome assumption. As far as I can tell, this is done to simplify formulas. The estimators they end up with are sufficiently simple that uncertainty quantification is easy.
+
+This paper is a standard reference for mediation analysis with a binary outcome.
+
+\subsection{\citet{Val13}}
+
+Extends the work of \citet{Van10} to include a binary mediator. Still uses the rare outcome assumption and only reports results on odds-ratio scale.
+
+\subsection{\citet{Van13}}
+
+This paper extends the work of \citet{Van09} to handle multiple mediators.
+
+\subsection{\citet{Van14}}
+
+This paper extends the work of \citet{Van09} by giving an alternative decomposition of the total effect. The goal of this decomposition is to separate mediation from interaction between the exposure and mediator.
+
+\subsection{\citet{Van15}}
+
+A book, which consolidates much of the work of this group from the previous decade.
+
+
+
+
 \section{The \texttt{SPSS} Macro \texttt{MLmed}}
 \label{sec:MLmed}
 
@@ -279,9 +314,7 @@ Points-out that, in mixed-effects models, the regression structure for $Y$ only 
 I think I'm missing something here, because it seems obvious to me that there will be a difference between the parameters in an assumed regression model for the marginal mean of $Y$ and the conditional mean of $Y$ given the random effects. Regardless, I don't think this one is particularly relevant to us. We have a conditional regression model and don't make any effort to model the marginal mean of $Y$ using regression.
 
 
-\subsection{\citet{Van10}}
 
-Standard reference for mediation analysis with binary outcome. Focuses on the causal inference aspects of the problem. Makes heavy use of the ``rare outcome'' assumption. Resulting model is sufficiently simple that UQ is easy.
 
 
 \subsection{\citet{Pea12}}
@@ -331,6 +364,9 @@ Based on the \texttt{R} package \texttt{TMB}, which does automatic differentiati
 \subsection{\citet{Wan18}}
 
 Standard reference for the \texttt{merDeriv} package in \texttt{R}. This is a small package that computes the Hessian of the observed data likelihood with respect to all parameters (including RE covariance parameters) for LMMs and GLMMs fit using \texttt{lme4}. In particular, use the \texttt{vcov} function with \texttt{full=TRUE} to get the asymptotic covariance matrix of the parameters (i.e. the inverse of the negative Hessian of the log-likelihood). You can also choose your parameterization for the RE parameters from variances, SDs or terms in the Cholesky decomposition. The last one is referred to as \texttt{theta} in \texttt{lme4} and is used extensively therein.
+
+
+
 
 
 
@@ -469,6 +505,6 @@ Finally, to get the asymptotic variance of one or more estimated mediation effec
 
 
 % \bibliography{../Literature_Review/Lit_Review_Bib}
-\bibliography{Lit_Review_Bib}
+\bibliography{../../Bib-Exact_Asymptotics}
 
 \end{document}

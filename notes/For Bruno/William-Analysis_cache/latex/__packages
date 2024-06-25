@@ -1,0 +1,13 @@
+formatR
+kableExtra
+Matrix
+lme4
+MASS
+nonnest2
+sandwich
+lavaan
+merDeriv
+tictoc
+ggplot2
+magrittr
+dplyr
