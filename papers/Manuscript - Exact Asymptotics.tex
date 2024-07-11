@@ -78,7 +78,7 @@ In this paper, we present a general framework for multilevel mediation analysis 
 \end{outline}
 
 
-\subsection{2024-06-25}
+\subsection{Counterfactual-Based Mediation Effects}
 
 Our approach to causal mediation analysis is based on the counterfactual framework of ???. Briefly, let $Y$ be an outcome of interest, $X$ be an exposure which is a causal driver of $Y$, and $M$ be a mediator, which influences $Y$ and is influenced by $X$. Figure \ref{fig:simp_med} shows a causal diagram representing this relationship. We call the top arrow the direct effect of $X$ on $Y$, and the bottom path through $M$ the indirect effect of $Y$. Taken together, these two pathways constitute the total effect of $X$ on $Y$.
 
@@ -108,6 +108,10 @@ We now move on to the definition of various mediation effects which are of inter
 Proceeding now to the actual definitions, we define the total effect of $X$ on $Y$ to be $TE(x, x') = d(EY_x, EY_{x'})$. The direct effect is defined as $DE(x, x') = d(Y_{x, M_{x'}}, Y_{x', M_{x'}})$, and the indirect effect is $IE(x, x') = d(Y_{x, M_{x}}, Y_{x, M_{x'}})$. See, e.g., ??? for motivation and discussion of these definitions \hl{($g$-function?)}.
 
 When the outcome, $Y$, is continuous, it is natural to take the discrepancy function to be $d(y_1, y_2) = y_1 - y_2$ as mentioned above. However, when $Y$ is binary, it is less obvious which scale to use. In this setting, expected counterfactuals are probabilities, so mediation effects measure the discrepancy between two probabilities. One option is to use the same difference preferred for continuous outcome; we refer to this as the risk-difference scale. Alternatives include $d(y_1, y_2) = y_1 / y_2$, the risk-ratio scale, and $d(y_1, y_2) = [y_1 / (1 - y_1)] / [y_2 / (1 - y_2)]$, the odds-ratio scale. We focus only on the binary outcome setting, although our results are easily extended to handle continuous outcomes. While our method can handle any choice of discrepancy function $d$ \hl{(differentiable? Whatever is necessary to apply the $\delta$-method later; might need to be continuously differentiable)}, in the interest of accessibility we specialize our results to the three discrepancies just mentioned for binary outcomes.
+
+
+
+\subsection{Identification and Modelling of Expected Counterfactuals}
 
 A fundamental problem of causal inference is that we can only ever observe one counterfactual outcome on a particular individual. In mediation analysis, this problem is even worse, since many of our definitions involve the nested counterfactual, $Y_{x, M_{x'}}$, which when $x \neq x'$ cannot be observed on any individual. Nevertheless, \citet{Ima10I} give conditions under which the population average of a nested counterfactual can be expressed in terms of conditional expectations, possibly conditional on one or more additional covariates, $W$. Specifically, their Theorem 1 states that, under a condition they call ``Sequential Ignorability'', we can write
 %
