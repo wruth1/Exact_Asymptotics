@@ -31,8 +31,16 @@
 \begin{document}
 
 \maketitle
+\section{Notes to Self}
+\begin{outline}
+    \1 In the paper, I organize variables as $Y, X, M, W$. This is based on defining counterfactuals as $Y_x$, then adding $M$, giving $Y_{x, m}$. In my code, it's always $Y, M, X, W$. I must be very careful to not mess this ordering up. The code is more arbitrary, but it's also harder to change. For now, I'm just going to try to juggle this difference manually, but I will need to carefully validate any results when passing from code to paper (this sort of issue has already been the source of one elusive error in my code).
+\end{outline}
+
+
 
 \section{Introduction}
+
+
 
 \begin{outline}
     \1 Literature review
@@ -101,17 +109,18 @@ Our approach to causal mediation analysis is based on the counterfactual framewo
       \label{fig:simp_med}
 \end{figure}
 
-We define the counterfactual $Y_x$ as the value $Y$ would assume when $X=x$. Similarly, write $M_x$ for the value $M$ would assume when $X=x$. Next, write $Y_{x,m}$ for the value $Y$ would assume if $X$ and $M$ were set to $x$ and $m$ respectively. Combining these ideas, we get the ``nested counterfactual'' $Y_{x, M_{x'}}$, which is the value of $Y$ when $X=x$ and $M$ is set to whatever it would have been when $X=x'$. It is common to link ordinary and nested conterfactuals by making the consistency assumption, which states $Y_x = Y_{x, M_x}$. Note that if $x \neq x'$ then the nested counterfactual is necessarily unobservable. It is nevertheless possible, given certain assumptions, to estimate the expected values of ordinary and nested counterfactuals. We will return later to the identification of expected counterfactuals with estimable quantities \hl{(I'm not certain whether it's better to do identification here or later).}
+We define the counterfactual $Y_x$ as the value $Y$ would assume when $X=x$. Similarly, write $M_x$ for the value $M$ would assume when $X=x$. Next, write $Y_{x,m}$ for the value $Y$ would assume if $X$ and $M$ were set to $x$ and $m$ respectively. Combining these ideas, we get the ``nested counterfactual'' $Y_{x, M_{x'}}$, which is the value of $Y$ when $X=x$ and $M$ is set to whatever it would have been when $X=x'$. It is common to link ordinary and nested conterfactuals by making the consistency assumption, which states $Y_x = Y_{x, M_x}$. Note that if $x \neq x'$ then the nested counterfactual is necessarily unobservable. It is nevertheless possible, given certain assumptions, to estimate the expected values of ordinary and nested counterfactuals. Section \ref{sec:ID} goes into detail on the identification of expected counterfactuals with estimable quantities.
 
-We now move on to the definition of various mediation effects which are of interest throughout the literature. There are three main types of mediation effect: total, direct and indirect, although the scale on which these are measured can vary. In the interest of generality, we write $d(y_1, y_2)$ for an arbitrary measure of the discrepancy between $y_1$ and $y_2$. The most natural form is $d(y_1, y_2) = y_1 - y_2$, although others may be more appropriate depending on context. Note that we do not require $d$ to be symmetric; in fact, the sign of $d$ is often of central scientific importance.
+There are three main types of mediation effect: total, direct and indirect, although the scale on which these are measured can vary. For concreteness, we focus here only on discrepancies defined as differences; i.e., those of the form $Y_{x_1, M_{x_1'}} - Y_{x_2, M_{x_2'}}$. Extending our results to effects defined on different scales (e.g. ratios) is straightforward. We will return briefly to this in Section ???.
 
-Proceeding now to the actual definitions, we define the total effect of $X$ on $Y$ to be $TE(x, x') = d(EY_x, EY_{x'})$. The direct effect is defined as $DE(x, x') = d(Y_{x, M_{x'}}, Y_{x', M_{x'}})$, and the indirect effect is $IE(x, x') = d(Y_{x, M_{x}}, Y_{x, M_{x'}})$. See, e.g., ??? for motivation and discussion of these definitions \hl{($g$-function?)}.
+Proceeding now to the actual definitions, we define the total effect of $X$ on $Y$ to be $TE(x, x') = EY_x - EY_{x'}$. The direct effect is defined as $DE(x, x') = Y_{x, M_{x'}} - Y_{x', M_{x'}}$, and the indirect effect is $IE(x, x') = Y_{x, M_{x}} - Y_{x, M_{x'}}$. See, e.g., ??? for motivation and discussion of these definitions.
 
-When the outcome, $Y$, is continuous, it is natural to take the discrepancy function to be $d(y_1, y_2) = y_1 - y_2$ as mentioned above. However, when $Y$ is binary, it is less obvious which scale to use. In this setting, expected counterfactuals are probabilities, so mediation effects measure the discrepancy between two probabilities. One option is to use the same difference preferred for continuous outcome; we refer to this as the risk-difference scale. Alternatives include $d(y_1, y_2) = y_1 / y_2$, the risk-ratio scale, and $d(y_1, y_2) = [y_1 / (1 - y_1)] / [y_2 / (1 - y_2)]$, the odds-ratio scale. We focus only on the binary outcome setting, although our results are easily extended to handle continuous outcomes. While our method can handle any choice of discrepancy function $d$ \hl{(differentiable? Whatever is necessary to apply the $\delta$-method later; might need to be continuously differentiable)}, in the interest of accessibility we specialize our results to the three discrepancies just mentioned for binary outcomes.
+
 
 
 
 \subsection{Identification and Modelling of Expected Counterfactuals}
+\label{sec:ID}
 
 A fundamental problem of causal inference is that we can only ever observe one counterfactual outcome on a particular individual. In mediation analysis, this problem is even worse, since many of our definitions involve the nested counterfactual, $Y_{x, M_{x'}}$, which when $x \neq x'$ cannot be observed on any individual. Nevertheless, \citet{Ima10I} give conditions under which the population average of a nested counterfactual can be expressed in terms of conditional expectations, possibly conditional on one or more additional covariates, $W$. Specifically, their Theorem 1 states that, under a condition they call ``Sequential Ignorability'', we can write
 %
@@ -121,15 +130,15 @@ A fundamental problem of causal inference is that we can only ever observe one c
 %
 In fact, their Theorem 1 is somewhat more general, giving an expression for the density of the nested counterfactual rather than its expected value.
 
-Using Equation (\ref{eq:ID}), we can estimate expected nested counterfactuals by working with the more tractable conditional expectations of $Y$ and $M$. We model the latter using regression, either linear or logistic depending on the forms of $Y$ and $M$. If $Y$ and $M$ are binary, then Equation (\ref{eq:ID}) has a particularly simple form:
+Using Equation (\ref{eq:ID}), we can estimate expected nested counterfactuals by working with the more tractable conditional expectations of $Y$ and $M$. We model the latter using regression, either linear or logistic depending on the forms of $Y$ and $M$. For concreteness, we take $Y$ and $M$ to both be binary. The extension of our method to continuous outcome and/or mediator is straightforward \textcolor{red}{(comment on sums $\rightarrow$ integrals and quadrature?)}. In this case, Equation (\ref{eq:ID}) has a particularly simple form:
 %
 \begin{multline}
     \bE (Y_{x, M_{x'}} | W=w) = \bP \left( Y=1 | X=x, M=1, W=w \right) \bP(M=1 | X = x', W=w) \\ + \bP \left( Y=1 | X=x, M=0, W=w \right) \bP(M=0 | X = x', W=w). \label{eq:ID_bin}
 \end{multline}
 %
-We estimate the conditional probabilities on the right-hand side of Equation (\ref{eq:ID_bin}) using logistic regression in the usual way. Note that this requires us to fit two models, one to predict $M$ using $X$ and $W$, while the other predicts $Y$ using $M$, $X$ and $W$.
+We estimate the conditional probabilities on the right-hand side of Equation (\ref{eq:ID_bin}) using logistic regression. Note that we must fit two models: one to predict $M$ using $X$ and $W$, and another to predict $Y$ using $M$, $X$ and $W$.
 
-We extend this regression modelling with the introduction of random effects \citep[see, e.g.][]{Dem04}. Specifically, we include random effects for the intercept and $X$ in our model for $M$, and for the intercept, $M$ and $X$ in our model for $Y$. We model these random effects as normally distributed, allowing for correlation within a model, but independent across models. Let $U \sim N(0, \Gamma_Y)$ and $V \sim N(0, \Gamma_M)$ be the random effects in our models for $Y$ and $M$ respectively. We can now re-write Equation (\ref{eq:ID_bin}) as
+We extend this regression modelling with the introduction of random effects \citep[see, e.g.][]{Dem04}. Specifically, we include random effects for the intercept and $X$ in our model for $M$, and for the intercept, $X$ and $M$ in our model for $Y$. Let $U$ and $V$ be the random effects for our models of $Y$ and $M$ respectively. We can re-write Equation (\ref{eq:ID_bin}) as
 %
 \begin{align}
     \bE (Y_{x, M_{x'}} | W=w) = & \left[\bE_U \bP \left( Y=1 |U, X=x, M=1, W=w \right) \right. \cdot \label{eq:ID_bin_ran}\\
@@ -138,48 +147,64 @@ We extend this regression modelling with the introduction of random effects \cit
     & \left. \bE_V \bP(M=0 |V, X = x', W=w) \right]. \nonumber 
 \end{align}
 %
+Following the usual approach, we model the random effects $U$ and $V$ as normally distributed, allowing for correlation between effects from the same model, but assuming independence between models. Let $U \sim N(0, \Gamma_Y)$ and $V \sim N(0, \Gamma_M)$. 
 
 
+\subsubsection{Expanding One Term in Equation (\ref{eq:ID_bin_ran})}
 
+We derive an expression for the first term in Equation \eqref{eq:ID_bin_ran}, then report results for the other three terms \textcolor{red}{(awk)}. 
 
-
-
-
-
-%! START HERE
-
-
-
-\textcolor{red}{The following discussion is awkward. I want to present a general expression for $E_U P(Y | ...)$, then specialize to Equation (\ref{eq:ID_bin_ran}). I have defined too much notation, but for now I'm just going to focus on getting ideas down on the page. Later, I will edit and tighten-up the presentation.}
-
-
-We show an expansion for one term in Equation (\ref{eq:ID_bin_ran}); the rest follow similarly. First, write $\eta = (\beta_0 + \beta_X x + \beta_M m + B_W^T w) + (U_0 + U_X x + U_M m)$ for the linear predictor of $Y$ based on $X$, $M$ and $W$. Let $\mu = \beta_0 + \beta_X x + \beta_M m + B_W^T w$ be the fixed-effects component of $\eta$, and $\xi = U_0 + U_X x + U_M m$ be its random-effects component. For convenience, we will also write $\gamma^2_Y(c_1, c_2, c_3) = (c_1, c_2, c_3) \Gamma_Y (c_1, c_2, c_3)^T$, so that $\bV \xi = \gamma^2_Y(1, m, x)$.
+First, write $\eta_Y = (\alpha_0 + \alpha_X x + \alpha_M m + A_W^T w) + (U_0 + U_X x + U_M m)$ for the linear predictor of $Y$ based on $X$, $M$ and $W$. Let $\mu_Y = \alpha_0 + \alpha_X x + A_W^T w$, so that the fixed-effects component of $\eta_Y$ is $\mu_Y + \alpha_M m$, and let $\xi_Y = U_0 + U_X x + U_M m$ be the random-effects component of $\eta_Y$. For convenience, we will also write $\gamma^2_Y(c_1, c_2, c_3) = (c_1, c_2, c_3) \Gamma_Y (c_1, c_2, c_3)^T$, so that $\bV \xi_Y = \gamma^2_Y(1, x, m)$ (recall that $\Gamma_Y$ is the covariance matrix of $U$).
 
 It is a well-known fact about logistic regression that
 %
 \begin{equation}
-    \bP \left( Y=1 |U, X=x, M=1, W=w \right) = \left[1 + \exp(-\eta)\right]^{-1},
+    \bP \left( Y=1 |U, X=x, M=1, W=w \right) = \left[1 + \exp(-\eta_Y)\right]^{-1},
 \end{equation}
 %
 so the first term in Equation (\ref{eq:ID_bin_ran}) can be written as
 %
 \begin{align}
-    \bE_U \bP \left( Y=1 |U, X=x, M=1, W=w \right) & = \int \frac{\phi_3(u; 0, \Gamma_Y)}{1 + \exp(-\eta)} du, \label{eq:pY1_bad}
+    \bE_U \bP \left( Y=1 |U, X=x, M=1, W=w \right) & = \int \frac{\phi_3(u; 0, \Gamma_Y)}{1 + \exp(-\eta_Y)} du, \label{eq:pY1_bad}
 \end{align}
 %
 where $\phi_d$ is the $d$-variate normal density. A straightforward change of variables gives us the alternative expression
 %
 \begin{align}
-    \bE_U \bP \left( Y=1 |U, X=x, M=1, W=w \right) & = \int \frac{\phi_1(z; 0, 1)}{1 + \exp(-\mu - \gamma_Y(1, m, x) z)} dz. \label{eq:pY1}
+    \bE_U \bP \left( Y=1 |U, X=x, M=1, W=w \right) & = \int \frac{\phi_1(z; 0, 1)}{1 + \exp(-\mu_Y - \alpha_M - \gamma_Y(1, x, 1) z)} dz. \label{eq:pY1}
 \end{align}
 %
-Importantly, the integral in Equation (\ref{eq:pY1}) is univariate (and thus amenable to numerical evaluation using quadrature), while the integral in Equation (\ref{eq:pY1_bad}) is multivariate.
-
-The integral in Equation (\ref{eq:pY1}) arises often enough that we give it a name. Let
+Importantly, the integral in Equation (\ref{eq:pY1}) is univariate (and thus amenable to numerical evaluation using quadrature). This integral arises often enough that we give it a name. Let
 %
 \begin{equation}
-    \Psi(\mu, \sigma^2) = \int \frac{\phi(z; 0, 1)}{1 + \exp(-\mu - \sigma z)} dz.
+    \Psi(a, b) = \int \frac{\phi(z; 0, 1)}{1 + \exp(-a - b z)} dz.
 \end{equation}
+%
+We can now write the first term in \eqref{eq:ID_bin_ran} compactly as
+%
+\begin{equation}
+    \bE_U \bP \left( Y=1 |U, X=x, M=1, W=w \right) = \Psi(\mu_Y + \alpha_M, \gamma_Y(1, x, 1))
+\end{equation}
+%
+Returning now to the other terms in Equation \eqref{eq:ID_bin_ran}, similar expressions hold. Write $\eta_M = (\beta_0 + \beta_X x + B_W^T w) + (V_0 + V_X x)$ for the linear predictor of $M$ based on $X$ and $W$. Write $\mu_M = \beta_0 + \beta_X x + B_W^T w$ and $\xi_M = V_0 + V_X x$ for the fixed and random components respectively of $\eta_M$. Finally, write $\gamma^2_M(c_1, c_2) = (c_1, c_2) \Gamma_M (c_1, c_2)^T$, so that $\bV \xi_M = \gamma^2_M(1, x)$ ($\Gamma_M$ is the covariance matrix of $V$). We can now write the expected counterfactual in \eqref{eq:ID_bin_ran} as
+%
+\begin{align}
+    \bE (Y_{x, M_{x'}} | W=w) = & \left[  \Psi(\mu_Y + \alpha_M, \gamma_Y(1, x, 1)) \cdot \Psi(\mu_M , \gamma_Y(1, x')) \right] + \label{eq:Psi_bin_ran}\\
+    & \left[ \Psi(\mu_Y, \gamma_Y(1, x, 0)) \cdot \Psi(- \mu_M , \gamma_Y(1, x')) \right] \nonumber
+\end{align}
+%
+Recall that each term in \eqref{eq:Psi_bin_ran} is a univariate integral, and can thus be accurately evaluated using standard numerical quadrature routines available in most software packages.
+
+
+
+
+
+
+\subsection{Alternative Effect Definitions}
+
+\textcolor{red}{This section needs to be completely re-written. The following might contain useable parts, but no guarantees.}
+
+When the outcome, $Y$, is continuous, it is natural to take the discrepancy function to be $d(y_1, y_2) = y_1 - y_2$ as mentioned above. However, when $Y$ is binary, it is less obvious which scale to use. In this setting, expected counterfactuals are probabilities, so mediation effects measure the discrepancy between two probabilities. One option is to use the same difference preferred for continuous outcome; we refer to this as the risk-difference scale. Alternatives include $d(y_1, y_2) = y_1 / y_2$, the risk-ratio scale, and $d(y_1, y_2) = [y_1 / (1 - y_1)] / [y_2 / (1 - y_2)]$, the odds-ratio scale. We focus only on the binary outcome setting, although our results are easily extended to handle continuous outcomes. While our method can handle any choice of discrepancy function $d$ \hl{(differentiable? Whatever is necessary to apply the $\delta$-method later; might need to be continuously differentiable)}, in the interest of accessibility we specialize our results to the three discrepancies just mentioned for binary outcomes.
 
 
 \subsection{Old}
