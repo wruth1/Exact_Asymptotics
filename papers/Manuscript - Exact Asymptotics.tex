@@ -198,6 +198,7 @@ Returning now to the other terms in Equation \eqref{eq:ID_bin_ran}, similar expr
 Recall that each term in \eqref{eq:Psi_bin_ran} is a univariate integral, and can thus be accurately evaluated using standard numerical quadrature routines available in most software packages.
 
 \subsection{Estimation and UQ}
+\label{sec:CF_UQ}
 
 Although not obvious from our notation, Equation \eqref{eq:Psi_bin_ran} depends only on the parameters of our two regression models (as well as the levels of our covariates, $x$, $x'$ and $w$). Estimation of the expected counterfactual thus proceeds by first fitting these two regression models to our data, then plugging-in our estimates of the two sets of model parameters to Equation \eqref{eq:Psi_bin_ran}. More precisely, if we re-write \eqref{eq:Psi_bin_ran} as
 %
@@ -220,7 +221,7 @@ We omit here an explicit formula for the asymptotic covariance of $\hat{\kappa}$
 
 \subsection{Mediation Effects}
 
-Recall that we define the three mediation effects, total, direct and indirect, in terms of expected counterfactuals of the form given in Equation \eqref{eq:kappa}. Estimation and uncertainty quantification for mediation effects thus follows immediately from the corresponding analysis of expected counterfactuals. Recall from Section \ref{sec:MA_defns} that, if we define effects as differences, then formulas for the three mediation effects are given in Table ???? (\textcolor{red}{Add a table at end of Section \ref{sec:MA_defns}}). Since these mediation effects are all linear combinations of the expected counterfactuals, their asymptotic variances are easily obtained. See Table \ref{tab:med_diffs}.
+Recall that we define the three mediation effects, total, direct and indirect, in terms of expected counterfactuals of the form given in Equation \eqref{eq:kappa}. Estimation and uncertainty quantification for mediation effects thus follows immediately from the corresponding analysis of expected counterfactuals. Recall from Section \ref{sec:MA_defns} that, if we define effects as differences, then formulas for the three mediation effects are given in Table ???? (\textcolor{red}{Add a table at end of Section \ref{sec:MA_defns}}). Since these mediation effects are all linear combinations of the expected counterfactuals, their asymptotic variances are easily obtained. See Table \ref{tab:med_diffs}. Alternatively, these asymptotic variances can be derived by applying the $\delta$-method to the map from various $\hat{\kappa}$s to the mediation effect. For example, the total effect can be obtained by first computing the asymptotic covariance matrix of $\hat{\kappa}(x,x)$ and $\hat{\kappa}(x',x')$, then pre- and post-multiplying by the gradient of the map $(\kappa_1, \kappa_2) \mapsto \kappa_1 - \kappa_2$.
 
 \begin{table}
     \centering
@@ -237,12 +238,7 @@ Recall that we define the three mediation effects, total, direct and indirect, i
     \label{tab:med_diffs}
 \end{table}
 
-
-\subsection{Alternative Effect Definitions}
-
-\textcolor{red}{This section needs to be completely re-written. The following might contain useable parts, but no guarantees.}
-
-When the outcome, $Y$, is continuous, it is natural to take the discrepancy function to be $d(y_1, y_2) = y_1 - y_2$ as mentioned above. However, when $Y$ is binary, it is less obvious which scale to use. In this setting, expected counterfactuals are probabilities, so mediation effects measure the discrepancy between two probabilities. One option is to use the same difference preferred for continuous outcome; we refer to this as the risk-difference scale. Alternatives include $d(y_1, y_2) = y_1 / y_2$, the risk-ratio scale, and $d(y_1, y_2) = [y_1 / (1 - y_1)] / [y_2 / (1 - y_2)]$, the odds-ratio scale. We focus only on the binary outcome setting, although our results are easily extended to handle continuous outcomes. While our method can handle any choice of discrepancy function $d$ \hl{(differentiable? Whatever is necessary to apply the $\delta$-method later; might need to be continuously differentiable)}, in the interest of accessibility we specialize our results to the three discrepancies just mentioned for binary outcomes.
+Suppose instead that mediation effects are desired on a different scale, such as risk-ratios or odds-ratios for binary outcomes. In this case, we adjust the definitions of the various effects accordingly, and estimate each expected counterfactual $\kappa$ with the corresponding plug-in estimator, $\hat{\kappa}$. Uncertainty quantification proceeds by applying the $\delta$-method to the function which maps various $\hat{\kappa}$s to the desired mediation effect. For example, the limiting variance of the total effect on risk-ratio scale can be obtained by first computing the asymptotic covariance matrix of $\hat{\kappa}(x,x)$ and $\hat{\kappa}(x',x')$, then pre- and post-multiplying by the gradient of the map $(\kappa_1, \kappa_2) \mapsto \kappa_1 / \kappa_2$. Formulas for these asymptotic variances tend to be quite long, but are easily implemented computationally (see our package ????).
 
 
 \subsection{Old}
