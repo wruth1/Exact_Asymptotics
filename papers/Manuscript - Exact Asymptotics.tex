@@ -34,6 +34,7 @@
 \section{Notes to Self}
 \begin{outline}
     \1 In the paper, I organize variables as $Y, X, M, W$. This is based on defining counterfactuals as $Y_x$, then adding $M$, giving $Y_{x, m}$. In my code, it's always $Y, M, X, W$. I must be very careful to not mess this ordering up. The code is more arbitrary, but it's also harder to change. For now, I'm just going to try to juggle this difference manually, but I will need to carefully validate any results when passing from code to paper (this sort of issue has already been the source of one elusive error in my code).
+    \1 I need to be very explicit that our analysis of expected counterfactuals is in service to mediation effects. Once we have estimates and UQ for expected counterfactuals, the extension to total, direct and indirect effects is straightforward.
 \end{outline}
 
 
@@ -86,9 +87,10 @@ In this paper, we present a general framework for multilevel mediation analysis 
 \end{outline}
 
 
-\subsection{Counterfactual-Based Mediation Effects}
+\subsection{Counterfactual-Based Mediation Analysis}
+\label{sec:MA_defns}
 
-Our approach to causal mediation analysis is based on the counterfactual framework of ???. Briefly, let $Y$ be an outcome of interest, $X$ be an exposure which is a causal driver of $Y$, and $M$ be a mediator, which influences $Y$ and is influenced by $X$. Figure \ref{fig:simp_med} shows a causal diagram representing this relationship. We call the top arrow the direct effect of $X$ on $Y$, and the bottom path through $M$ the indirect effect of $Y$. Taken together, these two pathways constitute the total effect of $X$ on $Y$.
+Our approach to causal mediation analysis is based on the counterfactual framework of ????. Briefly, let $Y$ be an outcome of interest, $X$ be an exposure which is a causal driver of $Y$, and $M$ be a mediator, which influences $Y$ and is influenced by $X$. Figure \ref{fig:simp_med} shows a causal diagram representing this relationship. We call the top arrow the direct effect of $X$ on $Y$, and the bottom path through $M$ the indirect effect of $Y$. Taken together, these two pathways constitute the total effect of $X$ on $Y$.
 
 \begin{figure}
     \centering
@@ -111,9 +113,9 @@ Our approach to causal mediation analysis is based on the counterfactual framewo
 
 We define the counterfactual $Y_x$ as the value $Y$ would assume when $X=x$. Similarly, write $M_x$ for the value $M$ would assume when $X=x$. Next, write $Y_{x,m}$ for the value $Y$ would assume if $X$ and $M$ were set to $x$ and $m$ respectively. Combining these ideas, we get the ``nested counterfactual'' $Y_{x, M_{x'}}$, which is the value of $Y$ when $X=x$ and $M$ is set to whatever it would have been when $X=x'$. It is common to link ordinary and nested conterfactuals by making the consistency assumption, which states $Y_x = Y_{x, M_x}$. Note that if $x \neq x'$ then the nested counterfactual is necessarily unobservable. It is nevertheless possible, given certain assumptions, to estimate the expected values of ordinary and nested counterfactuals. Section \ref{sec:ID} goes into detail on the identification of expected counterfactuals with estimable quantities.
 
-There are three main types of mediation effect: total, direct and indirect, although the scale on which these are measured can vary. For concreteness, we focus here only on discrepancies defined as differences; i.e., those of the form $Y_{x_1, M_{x_1'}} - Y_{x_2, M_{x_2'}}$. Extending our results to effects defined on different scales (e.g. ratios) is straightforward. We will return briefly to this in Section ???.
+There are three main types of mediation effect: total, direct and indirect, although the scale on which these are measured can vary. For concreteness, we focus here only on discrepancies defined as differences; i.e., those of the form $Y_{x_1, M_{x_1'}} - Y_{x_2, M_{x_2'}}$. Extending our results to effects defined on different scales (e.g. ratios) is straightforward. We will return briefly to this in Section ????.
 
-Proceeding now to the actual definitions, we define the total effect of $X$ on $Y$ to be $TE(x, x') = EY_x - EY_{x'}$. The direct effect is defined as $DE(x, x') = Y_{x, M_{x'}} - Y_{x', M_{x'}}$, and the indirect effect is $IE(x, x') = Y_{x, M_{x}} - Y_{x, M_{x'}}$. See, e.g., ??? for motivation and discussion of these definitions.
+Proceeding now to the actual definitions, we define the total effect of $X$ on $Y$ to be $TE(x, x') = EY_x - EY_{x'}$. The direct effect is defined as $DE(x, x') = Y_{x, M_{x'}} - Y_{x', M_{x'}}$, and the indirect effect is $IE(x, x') = Y_{x, M_{x}} - Y_{x, M_{x'}}$. See, e.g., ???? for motivation and discussion of these definitions.
 
 
 
@@ -197,9 +199,43 @@ Recall that each term in \eqref{eq:Psi_bin_ran} is a univariate integral, and ca
 
 \subsection{Estimation and UQ}
 
-Discuss Hessian of obs data likelihood and $\delta$-method. Latter has two stages. The two-stages might be better first addressed at end of previous section (should at least be integrated with above work to identify expected counterfactuals. I do this a bit, but maybe not enough)
+Although not obvious from our notation, Equation \eqref{eq:Psi_bin_ran} depends only on the parameters of our two regression models (as well as the levels of our covariates, $x$, $x'$ and $w$). Estimation of the expected counterfactual thus proceeds by first fitting these two regression models to our data, then plugging-in our estimates of the two sets of model parameters to Equation \eqref{eq:Psi_bin_ran}. More precisely, if we re-write \eqref{eq:Psi_bin_ran} as
+%
+\begin{equation}
+    \bE (Y_{x, M_{x'}} | W=w) = \kappa(x, x', w; \alpha, \Gamma_Y, \beta, \Gamma_Y) \label{eq:kappa},
+\end{equation}
+%
+then our estimate of this expected counterfactual is
+\begin{align}
+    \hat{\bE} (Y_{x, M_{x'}} | W=w) &= \kappa(x, x', w; \hat{\alpha}, \hat{\Gamma}_Y, \hat{\beta}, \hat{\Gamma}_M) \label{eq:kappa_hat}\\
+    &=: \hat{\kappa}(x, x', w)
+\end{align}
+%
+We often omit the parameters from $\kappa$, and $w$ from both $\kappa$ and $\hat{\kappa}$. 
+
+Uncertainty quantification for our estimator, $\hat{\kappa}$, proceeds by the $\delta$-method \citep[see, e.g.,][]{vdV98}. We first get asymptotic covariance matrices for estimators of our two sets of regression parameters. Next, we stack these two covariances into a single $2\times 2$ block-diagonal matrix (\hl{assuming asymptotic independence between models, see} \citealp{Bau06}), then pre- and post-multiply by the Jacobian of $\kappa$. From traditional M-estimator theory, the asymptotic covariance of our regression estimators is approximately the inverse Hessian of their respective objective functions at the maximizers. These objective functions differ from likelihoods only in that Laplace's method is used to approximate the marginal likelihood of the data from the joint likelihood between the observed data and random effects.
+
+We omit here an explicit formula for the asymptotic covariance of $\hat{\kappa}$, \textcolor{red}{but one can be found in our \texttt{R} package (\texttt{MultMedUQ}?). See also the supplemental material for an accompanying derivation.} For concreteness however, write $\sqrt{n} (\hat{\kappa}(x, x') - \kappa(x, x')) \rightsquigarrow N(0, \lambda^2(x, x'))$. We will often also need the limiting covariance of $\kappa$ evaluated at two sets of values for $x$ and $x'$. In this case we write $\rho(x_1, x'_1; x_2, x'_2)$ for the asymptotic correlation between $\hat{\kappa}(x_1, x'_1)$ and $\hat{\kappa}(x_2, x'_2)$.
 
 
+\subsection{Mediation Effects}
+
+Recall that we define the three mediation effects, total, direct and indirect, in terms of expected counterfactuals of the form given in Equation \eqref{eq:kappa}. Estimation and uncertainty quantification for mediation effects thus follows immediately from the corresponding analysis of expected counterfactuals. Recall from Section \ref{sec:MA_defns} that, if we define effects as differences, then formulas for the three mediation effects are given in Table ???? (\textcolor{red}{Add a table at end of Section \ref{sec:MA_defns}}). Since these mediation effects are all linear combinations of the expected counterfactuals, their asymptotic variances are easily obtained. See Table \ref{tab:med_diffs}.
+
+\begin{table}
+    \centering
+    \begin{tabular}{|c|c|c|}
+        \hline
+        Effect & Definition & Asymptotic Variance\\
+        \hline
+        Total & $\kappa(x, x) - \kappa(x', x')$ &  $\lambda^2(x, x) + \lambda^2(x', x') - 2 \lambda(x, x)  \lambda(x', x')  \rho(x, x; x', x')$\\
+        Direct & $\kappa(x, x') - \kappa(x', x')$ & $\lambda^2(x, x') + \lambda^2(x', x') - 2 \lambda(x, x')  \lambda(x', x')  \rho(x, x'; x', x')$\\
+        Indirect & $\kappa(x, x) - \kappa(x, x')$ & $\lambda^2(x, x) + \lambda^2(x, x') - 2 \lambda(x, x)  \lambda(x, x')  \rho(x, x; x, x')$\\
+        \hline
+    \end{tabular}
+    \caption{Mediation effects defined on difference scale.}
+    \label{tab:med_diffs}
+\end{table}
 
 
 \subsection{Alternative Effect Definitions}
