@@ -240,6 +240,8 @@ Recall that we define the three mediation effects, total, direct and indirect, i
 
 Suppose instead that mediation effects are desired on a different scale, such as risk-ratios or odds-ratios for binary outcomes. In this case, we adjust the definitions of the various effects accordingly, and estimate each expected counterfactual $\kappa$ with the corresponding plug-in estimator, $\hat{\kappa}$. Uncertainty quantification proceeds by applying the $\delta$-method to the function which maps various $\hat{\kappa}$s to the desired mediation effect. For example, the limiting variance of the total effect on risk-ratio scale can be obtained by first computing the asymptotic covariance matrix of $\hat{\kappa}(x,x)$ and $\hat{\kappa}(x',x')$, then pre- and post-multiplying by the gradient of the map $(\kappa_1, \kappa_2) \mapsto \kappa_1 / \kappa_2$. Formulas for these asymptotic variances tend to be quite long, but are easily implemented computationally (see our package ????).
 
+While the above discussion focuses on estimation of each mediation effect individually, it is straightforward to extend our analysis to simultaneous estimation of, for example, the total, direct and indirect effects on a single scale. This has the advantage of estimating covariances between mediation effects, rather than just the effects' marginal variances.
+
 
 \subsection{Old}
 
