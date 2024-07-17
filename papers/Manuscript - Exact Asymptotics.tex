@@ -42,18 +42,6 @@
 
 \section{Introduction}
 
-
-
-\begin{outline}
-    \1 Literature review
-        \2 \citeauthor{Sam23}
-        \2 Imai et al.
-        \2 SEM world
-    \1 Overview of our contribution
-        \2 Analytical UQ for mediation effects
-        \2 Existing work is Monte Carlo-based. E.g. Imai's method, bootstrap
-\end{outline}
-
 Mediation analysis is a central problem in modern causal inference. Many scientific and public health questions have the form of separating the direct effect of some exposure on an outcome from the indirect effect of that exposure via a mediator. Many authors have developed methods to address this problem; gradually increasing in complexity. Early work by \citet{Bar86} laid the foundation for future developments, but did not use the machinery of counterfactual outcomes. 
 
 There have been several approaches to the analysis of causal mediation. One group established a non-parametric identification result \citep{Ima10II}, and used this result to estimate mediation effects in various contexts \citep{Ima10I, Ima11}. Their methodology is implemented in the \texttt{R} package \texttt{mediation} \citep{Tin14}. Note that this group only estimates mediation effects as expected differences in counterfactuals, so if the outcome is binary then mediation effects are only available on the risk-difference scale.
@@ -73,19 +61,6 @@ In this paper, we present a general framework for multilevel mediation analysis 
 
 \section{Multilevel Mediation Analysis}
 
-\begin{outline}
-    \1 \st{Define counterfactuals (ctfs) and nested counterfactuals }
-    \1 \st{Define mediation effects}
-        \2 \st{Continuous outcome}
-        \2 \st{Binary outcome on risk difference, risk ratio and odds ratio scales}
-    \1 \st{Identification of mediation effects}
-        \2 \st{See} \citet{Ima10I} \st{for non-parametric identification of nested counterfactuals}
-    \1 \st{Regression modelling}
-        \2 \st{Restrict to binary outcome?}
-        \2 \st{Fixed effects regression (brief)}
-        \2 \st{Mixed effects regression}
-        \2 \st{Prediction of random effects}
-\end{outline}
 
 
 \subsection{Counterfactual-Based Mediation Analysis}
@@ -244,18 +219,6 @@ Suppose instead that mediation effects are desired on a different scale, such as
 
 While the above discussion focuses on estimation of each mediation effect individually, it is straightforward to extend our analysis to simultaneous estimation of, for example, the total, direct and indirect effects on a single scale. This has the advantage of estimating covariances between mediation effects, rather than just the effects' marginal variances.
 
-
-
-\section{Estimation and Inference}
-
-\begin{outline}
-    \1 \st{Estimate models using \texttt{lme4}}
-    \1 \st{UQ for model parameters (mention \texttt{merDeriv} package)}
-    \1 \st{UQ for nested counterfactuals via $\delta$-method}
-    \1 \st{Simultaneous UQ for triples of mediation effects (i.e. total, direct and indirect)}
-        \2 \st{Can also do all 9 simultaneously}
-    \1 UQ for predicted group-level effects? (not in this paper)
-\end{outline}
 
 
 \section{Empirical Investigation}
