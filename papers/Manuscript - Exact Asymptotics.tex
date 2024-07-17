@@ -24,6 +24,7 @@
 \newcommand{\bV}{\mathbb{V}}
 
 \newcommand{\zdens}{\frac{e^{-z^2/2}}{\sqrt{2\pi}}}
+\newcommand{\indep}{\perp \!\!\! \perp}
 
 
 \title{Analytical Uncertainty Quantification for Multilevel Mediation Analysis}
@@ -63,9 +64,9 @@ Briefly, causal mediation analysis is based on the counterfactual, or potential 
 
 The standard approach to solving this fundamental problem is to avoid estimating individual-level counterfactuals and instead estimate population averages thereof. Under standard assumptions, such as consistency and no unmeasured confounders \citep[see, e.g.,][]{Pea09}, we can estimate expected conterfactuals as functions of conditional expectations. From this point, mediation analysis reduces to a problem of classical statistics; one which can be solved using traditional regression methodology. The difference between continuous and binary outcomes (or mediators) is essentially addressed by choosing between linear and logistic regression. Other data types (e.g., count, survival), or more flexible relationships (e.g., splines), can also be incorporated by selecting the appropriate regression methodology.
 
-One extension which is of particular interest is to dependent data via multilevel, or mixed-effects, models. Mixed-effects regression models involve the introduction of random, unobserved coefficients to an existing regression \hl{(awk)}. A common setting in which such a model arises is clustered data, where the random coefficients differ across clusters, but are constant within each cluster. See, e.g., \citet{Dem04} for an overview of mixed-effects methodology. When applied to mediation analysis, mixed-effects methods allow for modelling group-specific mediation effects, and the effect of this heterogeneity on the estimation of global effects.
+One extension which is of particular interest is to dependent data via multilevel, or mixed-effects, models. Mixed-effects regression models involve the introduction of random, unobserved coefficients to an existing regression. A common setting in which such a model arises is clustered data, where the random coefficients differ across clusters, but are constant within each cluster. See, e.g., \citet{Dem04} for an overview of mixed-effects methodology. When applied to mediation analysis, mixed-effects methods allow for modelling group-specific mediation effects, and the effect of this heterogeneity on the estimation of global effects.
 
-In this paper, we present a general framework for multilevel mediation analysis based on the estimation of nested counterfactuals. In particular, our method can be applied to estimate mediation effects on whatever scale is of interest (e.g., risk difference, risk ration, odds ratio). 
+In this paper, we present a general framework for multilevel mediation analysis based on the estimation of nested counterfactuals. In particular, our method can be applied to estimate mediation effects on whatever scale is of interest (e.g., risk difference, risk ration, odds ratio). We focus our presentation on a binary outcome and binary mediator, although the extension to one or both being continuous is straightforward.
 
 
 
@@ -73,24 +74,24 @@ In this paper, we present a general framework for multilevel mediation analysis 
 \section{Multilevel Mediation Analysis}
 
 \begin{outline}
-    \1 Define counterfactuals (ctfs) and nested counterfactuals 
-    \1 Define mediation effects
-        \2 Continuous outcome
-        \2 Binary outcome on risk difference, risk ratio and odds ratio scales
-    \1 Identification of mediation effects
-        \2 See \citet{Ima10I} for non-parametric identification of nested counterfactuals
-    \1 Regression modelling
-        \2 Restrict to binary outcome?
-        \2 Fixed effects regression (brief)
-        \2 Mixed effects regression
-        \2 Prediction of random effects
+    \1 \st{Define counterfactuals (ctfs) and nested counterfactuals }
+    \1 \st{Define mediation effects}
+        \2 \st{Continuous outcome}
+        \2 \st{Binary outcome on risk difference, risk ratio and odds ratio scales}
+    \1 \st{Identification of mediation effects}
+        \2 \st{See} \citet{Ima10I} \st{for non-parametric identification of nested counterfactuals}
+    \1 \st{Regression modelling}
+        \2 \st{Restrict to binary outcome?}
+        \2 \st{Fixed effects regression (brief)}
+        \2 \st{Mixed effects regression}
+        \2 \st{Prediction of random effects}
 \end{outline}
 
 
 \subsection{Counterfactual-Based Mediation Analysis}
 \label{sec:MA_defns}
 
-Our approach to causal mediation analysis is based on the counterfactual framework of ????. Briefly, let $Y$ be an outcome of interest, $X$ be an exposure which is a causal driver of $Y$, and $M$ be a mediator, which influences $Y$ and is influenced by $X$. Figure \ref{fig:simp_med} shows a causal diagram representing this relationship. We call the top arrow the direct effect of $X$ on $Y$, and the bottom path through $M$ the indirect effect of $Y$. Taken together, these two pathways constitute the total effect of $X$ on $Y$.
+Our approach to causal mediation analysis is based on the well-known counterfactual framework \citep[see, e.g.,][]{Van09,Pea12}. Briefly, let $Y$ be an outcome of interest, $X$ be an exposure which is a causal driver of $Y$, and $M$ be a mediator, which influences $Y$ and is influenced by $X$. Figure \ref{fig:simp_med} shows a minimal causal diagram representing this relationship. We call the top arrow the direct effect of $X$ on $Y$, and the bottom path through $M$ the indirect effect of $Y$. Taken together, these two pathways constitute the total effect of $X$ on $Y$.
 
 \begin{figure}
     \centering
@@ -113,9 +114,9 @@ Our approach to causal mediation analysis is based on the counterfactual framewo
 
 We define the counterfactual $Y_x$ as the value $Y$ would assume when $X=x$. Similarly, write $M_x$ for the value $M$ would assume when $X=x$. Next, write $Y_{x,m}$ for the value $Y$ would assume if $X$ and $M$ were set to $x$ and $m$ respectively. Combining these ideas, we get the ``nested counterfactual'' $Y_{x, M_{x'}}$, which is the value of $Y$ when $X=x$ and $M$ is set to whatever it would have been when $X=x'$. It is common to link ordinary and nested conterfactuals by making the consistency assumption, which states $Y_x = Y_{x, M_x}$. Note that if $x \neq x'$ then the nested counterfactual is necessarily unobservable. It is nevertheless possible, given certain assumptions, to estimate the expected values of ordinary and nested counterfactuals. Section \ref{sec:ID} goes into detail on the identification of expected counterfactuals with estimable quantities.
 
-There are three main types of mediation effect: total, direct and indirect, although the scale on which these are measured can vary. For concreteness, we focus here only on discrepancies defined as differences; i.e., those of the form $Y_{x_1, M_{x_1'}} - Y_{x_2, M_{x_2'}}$. Extending our results to effects defined on different scales (e.g. ratios) is straightforward. We will return briefly to this in Section ????.
+There are three main types of mediation effect: total, direct and indirect, although the scale on which these are measured can vary. For concreteness, we focus here only on effects defined as differences; i.e., those of the form $Y_{x_1, M_{x_1'}} - Y_{x_2, M_{x_2'}}$. Extending our results to effects defined on different scales (e.g. ratios) is straightforward; see Section \ref{sec:med_effs}.
 
-Proceeding now to the actual definitions, we define the total effect of $X$ on $Y$ to be $TE(x, x') = EY_x - EY_{x'}$. The direct effect is defined as $DE(x, x') = Y_{x, M_{x'}} - Y_{x', M_{x'}}$, and the indirect effect is $IE(x, x') = Y_{x, M_{x}} - Y_{x, M_{x'}}$. See, e.g., ???? for motivation and discussion of these definitions.
+Proceeding now to the definitions, we set the total effect of $X$ on $Y$ to be $TE(x, x') = EY_x - EY_{x'}$. The direct effect is $DE(x, x') = Y_{x, M_{x'}} - Y_{x', M_{x'}}$, and the indirect effect is $IE(x, x') = Y_{x, M_{x}} - Y_{x, M_{x'}}$. See, e.g., \citet{Pea12} for motivation and discussion of these definitions.
 
 
 
@@ -130,7 +131,7 @@ A fundamental problem of causal inference is that we can only ever observe one c
     \bE (Y_{x, M_{x'}} | W=w) = \bE_M \left[ \bE_Y \left( Y | X=x, M, W=w \right) | X=x', W=w \right]. \label{eq:ID}
 \end{equation}
 %
-In fact, their Theorem 1 is somewhat more general, giving an expression for the density of the nested counterfactual rather than its expected value.
+In fact, their Theorem 1 is somewhat more general, giving an expression for the density of the nested counterfactual rather than its expected value. We henceforth assume that Sequential Ignorability is satisfied by the variables in our model.
 
 Using Equation (\ref{eq:ID}), we can estimate expected nested counterfactuals by working with the more tractable conditional expectations of $Y$ and $M$. We model the latter using regression, either linear or logistic depending on the forms of $Y$ and $M$. For concreteness, we take $Y$ and $M$ to both be binary. The extension of our method to continuous outcome and/or mediator is straightforward \textcolor{red}{(comment on sums $\rightarrow$ integrals and quadrature?)}. In this case, Equation (\ref{eq:ID}) has a particularly simple form:
 %
@@ -149,7 +150,7 @@ We extend this regression modelling with the introduction of random effects \cit
     & \left. \bE_V \bP(M=0 |V, X = x', W=w) \right]. \nonumber 
 \end{align}
 %
-Following the usual approach, we model the random effects $U$ and $V$ as normally distributed, allowing for correlation between effects from the same model, but assuming independence between models. Let $U \sim N(0, \Gamma_Y)$ and $V \sim N(0, \Gamma_M)$. 
+We model the random effects $U$ and $V$ as normally distributed, allowing for correlation between effects from the same model, but assuming independence between models (i.e. $U \indep V$). Let $U \sim N(0, \Gamma_Y)$ and $V \sim N(0, \Gamma_M)$.
 
 
 \subsubsection{Expanding One Term in Equation (\ref{eq:ID_bin_ran})}
@@ -214,12 +215,13 @@ then our estimate of this expected counterfactual is
 %
 We often omit the parameters from $\kappa$, and $w$ from both $\kappa$ and $\hat{\kappa}$. 
 
-Uncertainty quantification for our estimator, $\hat{\kappa}$, proceeds by the $\delta$-method \citep[see, e.g.,][]{vdV98}. We first get asymptotic covariance matrices for estimators of our two sets of regression parameters. Next, we stack these two covariances into a single $2\times 2$ block-diagonal matrix (\hl{assuming asymptotic independence between models, see} \citealp{Bau06}), then pre- and post-multiply by the Jacobian of $\kappa$. From traditional M-estimator theory, the asymptotic covariance of our regression estimators is approximately the inverse Hessian of their respective objective functions at the maximizers. These objective functions differ from likelihoods only in that Laplace's method is used to approximate the marginal likelihood of the data from the joint likelihood between the observed data and random effects.
+Uncertainty quantification for our estimator, $\hat{\kappa}$, proceeds by the $\delta$-method \citep[see, e.g.,][]{vdV98}. We first get asymptotic covariance matrices for estimators of our two sets of regression parameters. Next, we stack these two covariances into a single $2\times 2$ block-diagonal matrix (\hl{assuming asymptotic independence between models, see} \citealp{Bau06}), then pre- and post-multiply by the Jacobian of $\kappa$. From traditional M-estimator theory, the asymptotic covariance of our regression estimators is approximately the inverse Hessian of their respective objective functions at the maximizers. These objective functions differ from log-likelihoods only in that Laplace's method is used to approximate the marginal likelihood of the data from its joint likelihood with the random effects.
 
-We omit here an explicit formula for the asymptotic covariance of $\hat{\kappa}$, \textcolor{red}{but one can be found in our \texttt{R} package (\texttt{MultMedUQ}?). See also the supplemental material for an accompanying derivation.} For concreteness however, write $\sqrt{n} (\hat{\kappa}(x, x') - \kappa(x, x')) \rightsquigarrow N(0, \lambda^2(x, x'))$. We will often also need the limiting covariance of $\kappa$ evaluated at two sets of values for $x$ and $x'$. In this case we write $\rho(x_1, x'_1; x_2, x'_2)$ for the asymptotic correlation between $\hat{\kappa}(x_1, x'_1)$ and $\hat{\kappa}(x_2, x'_2)$.
+We omit here an explicit formula for the asymptotic covariance of $\hat{\kappa}$, \textcolor{red}{but one can be found in our \texttt{R} package\footnote{Name idea: \texttt{MultMedUQ}?}. See also the supplemental material for an accompanying derivation.} For concreteness however, write $\sqrt{n} (\hat{\kappa}(x, x') - \kappa(x, x')) \rightsquigarrow N(0, \lambda^2(x, x'))$. We will often also need the limiting covariance of $\kappa$ evaluated at two sets of values for $x$ and $x'$. In this case we write $\rho(x_1, x'_1; x_2, x'_2)$ for the asymptotic correlation between $\hat{\kappa}(x_1, x'_1)$ and $\hat{\kappa}(x_2, x'_2)$.
 
 
 \subsection{Mediation Effects}
+\label{sec:med_effs}
 
 Recall that we define the three mediation effects, total, direct and indirect, in terms of expected counterfactuals of the form given in Equation \eqref{eq:kappa}. Estimation and uncertainty quantification for mediation effects thus follows immediately from the corresponding analysis of expected counterfactuals. Recall from Section \ref{sec:MA_defns} that, if we define effects as differences, then formulas for the three mediation effects are given in Table ???? (\textcolor{red}{Add a table at end of Section \ref{sec:MA_defns}}). Since these mediation effects are all linear combinations of the expected counterfactuals, their asymptotic variances are easily obtained. See Table \ref{tab:med_diffs}. Alternatively, these asymptotic variances can be derived by applying the $\delta$-method to the map from various $\hat{\kappa}$s to the mediation effect. For example, the total effect can be obtained by first computing the asymptotic covariance matrix of $\hat{\kappa}(x,x)$ and $\hat{\kappa}(x',x')$, then pre- and post-multiplying by the gradient of the map $(\kappa_1, \kappa_2) \mapsto \kappa_1 - \kappa_2$.
 
@@ -243,50 +245,16 @@ Suppose instead that mediation effects are desired on a different scale, such as
 While the above discussion focuses on estimation of each mediation effect individually, it is straightforward to extend our analysis to simultaneous estimation of, for example, the total, direct and indirect effects on a single scale. This has the advantage of estimating covariances between mediation effects, rather than just the effects' marginal variances.
 
 
-\subsection{Old}
-
-
-In this section, we define the total, direct and indirect mediation effects in terms of nested counterfactuals. We begin by applying the Mediation Formula of \citet{Pea12} to identify nested counterfactuals with simple functions of conditional expectations.
-
-We begin by observing that mediation effects are often defined in terms of nested counterfactuals (regardless of the scale on which these effects are reported). \hl{There is some causal inference theory to be done here. For now, I'm just going to write what I expect to be true, then later I will go back and add the necessary assumptions.} As such, we begin by identifying a general nested counterfactual with estimable quantities. To this end, write $Y(x, m)$ for the counterfactual value of $Y$ when $X$ and $M$ are set to $x$ and $m$ respectively. Similarly, write $M(x)$ for the counterfactual value of $M$ when $X=x$. We write $Y(x, M(x'))$ for the value of $Y$ when $X$ is set to $x$ and $M$ is set to what it would have been if $X$ were $x'$. We refer to $Y(x, M(x'))$ as a nested counterfactual. Note that, when $x \neq x'$, the nested counterfactual is necessarily unobservable. Nevertheless, given regularity conditions, we can write
-%
-\begin{equation}
-    \bE Y(x, M(x')) = \int \bE(Y | M=m, X=x) \bP(M = dm | X = x') \label{eq:id_nest}
-\end{equation}
-%
-A similar expression holds conditional on pre-treatment covariates,
-\begin{equation}
-    \bE Y_c(x, M(x')) = \int \bE(Y | M=m, X=x, C=c) \bP(M = dm | X = x', C=c) \label{eq:id_nest_cov}
-\end{equation}
-%
-Having identified expected nested counterfactuals with integrals of conditional quantities, we can use regression to estimate the RHS of Equations \ref{eq:id_nest} and \ref{eq:id_nest_cov}. This identification with regression-based quantities is especially simple if $M$ is binary. Here, we get $\bP(M=m | \cdot) = \bE(M=m | \cdot)$, where the latter quantity is popularly modelled with logistic regression. For simplicity, we hereafter assume that the mediator, $M$, is binary. \hl{If not, we need to do something different. One option is to extract the conditional density of $(M | \cdot)$, then perform the integral. Another is to do regression with response $\bE(Y | M=m, X=x, C=c)$, viewed as a function of $m$. There is likely an equivalence between these two methods; I can come back to this later.}
-
-The above development allows only fixed-effects in the regression models. If we want to also incorporate random effects, we simply view Equations \ref{eq:id_nest} and \ref{eq:id_nest_cov} as having had these random effects marginalized out. That is, if we write $U$ and $V$ for the random effects in our models for $Y$ and $M$ respectively, and $G_V$, $G_V$ for the random effects' distributions, then we can re-write Equations \ref{eq:id_nest} and \ref{eq:id_nest_cov} as
-%
-\begin{align}
-    \bE Y(x, M(x')) &= \int \bE(Y | U=u, M=m, X=x) \bP(M = dm |V=v, X = x') G_U(du) G_V(dv) \label{eq:ran_id_nest} \\
-    \bE Y_c(x, M(x')) &= \int \bE(Y | U=u, M=m, X=x, C=c) \bP(M = dm | V=v, X = x', C=c) G_U(du) G_V(dv) \label{eq:ran_id_nest_cov}
-\end{align}
-
-\subsection{Ideas for CI Theory}
-Applying the Counterfactual Unnesting Theorem of \citet{Cor21}, and provided that the conditions specified therein are satisfied, we have
-
-Alternatively, see Theorem 1 of \citet{Ima10I}. This is specifically the result I want, not the corresponding identification results of \citet{Ima10II}, which focuses more narrowly on identification of mediation effects. Note that, in \citet{Ima10I}, the function $f$ is a density (with respect to some unspecified measure, possibly counting measure). In order to get the above formulas for expected values of $Y$, we do need to assume that $\bE Y$ is finite so we can apply Fubini's Theorem (the one for finite integrals).
-
-
-
-
-
 
 \section{Estimation and Inference}
 
 \begin{outline}
-    \1 Estimate models using \texttt{lme4}
-    \1 UQ for model parameters (mention \texttt{merDeriv} package)
-    \1 UQ for nested counterfactuals via $\delta$-method
-    \1 Simultaneous UQ for triples of mediation effects (i.e. total, direct and indirect)
-        \2 Can also do all 9 simultaneously
-    \1 UQ for predicted group-level effects?
+    \1 \st{Estimate models using \texttt{lme4}}
+    \1 \st{UQ for model parameters (mention \texttt{merDeriv} package)}
+    \1 \st{UQ for nested counterfactuals via $\delta$-method}
+    \1 \st{Simultaneous UQ for triples of mediation effects (i.e. total, direct and indirect)}
+        \2 \st{Can also do all 9 simultaneously}
+    \1 UQ for predicted group-level effects? (not in this paper)
 \end{outline}
 
 
@@ -297,7 +265,7 @@ Alternatively, see Theorem 1 of \citet{Ima10I}. This is specifically the result 
         \2 Proof of concept
         \2 Explore robustness. See \citet{Sam23} for inspiration.
     \1 Real data
-        \2 Trust study dataset?
+        \2 Trust study dataset? (this will be the focus of an applied paper)
 \end{outline}
 
 \bibliography{../Bib-Exact_Asymptotics}
