@@ -168,8 +168,8 @@ We can now write the first term in \eqref{eq:ID_bin_ran} compactly as
 Returning to the other terms in Equation \eqref{eq:ID_bin_ran}, similar expressions hold. Write $\eta_M = (\beta_0 + \beta_X x + B_W^T w) + (V_0 + V_X x)$ for the linear predictor of $M$ based on $X$ and $W$. Write $\mu_M = \beta_0 + \beta_X x + B_W^T w$ and $\xi_M = V_0 + V_X x$ for the fixed and random components respectively of $\eta_M$. Finally, write $\gamma^2_M(c_1, c_2) = (c_1, c_2) \Gamma_M (c_1, c_2)^T$, so that $\bV \xi_M = \gamma^2_M(1, x)$ ($\Gamma_M$ is the covariance matrix of $V$). We can now write the expected counterfactual in \eqref{eq:ID_bin_ran} as
 %
 \begin{align}
-    \bE (Y_{x, M_{x'}} | W=w) = & \left[  \Psi(\mu_Y + \alpha_M, \gamma_Y(1, x, 1)) \cdot \Psi(\mu_M , \gamma_Y(1, x')) \right] + \label{eq:Psi_bin_ran}\\
-    & \left[ \Psi(\mu_Y, \gamma_Y(1, x, 0)) \cdot \Psi(- \mu_M , \gamma_Y(1, x')) \right] \nonumber
+    \bE (Y_{x, M_{x'}} | W=w) = & \left[  \Psi(\mu_Y + \alpha_M, \gamma_Y(1, x, 1)) \cdot \Psi(\mu_M , \gamma_M(1, x')) \right] + \label{eq:Psi_bin_ran}\\
+    & \left[ \Psi(\mu_Y, \gamma_Y(1, x, 0)) \cdot \Psi(- \mu_M , \gamma_M(1, x')) \right] \nonumber
 \end{align}
 %
 Recall that each term in \eqref{eq:Psi_bin_ran} is a univariate integral, and can thus be accurately evaluated using standard numerical quadrature routines available in most software packages.
@@ -180,7 +180,7 @@ Recall that each term in \eqref{eq:Psi_bin_ran} is a univariate integral, and ca
 Although not explicit in our notation, Equation \eqref{eq:Psi_bin_ran} depends only on the parameters of our two regression models (as well as the levels of our covariates, $x$, $x'$ and $w$). Estimation of the expected counterfactual thus proceeds by first fitting these two regression models to our data, then plugging-in our estimates of the two sets of model parameters to Equation \eqref{eq:Psi_bin_ran}. More precisely, if we re-write \eqref{eq:Psi_bin_ran} as
 %
 \begin{align}
-    \bE (Y_{x, M_{x'}} | W=w) = \kappa(x, x', w; \alpha, \Gamma_Y, \beta, \Gamma_Y) \label{eq:kappa}\\
+    \bE (Y_{x, M_{x'}} | W=w) &= \kappa(x, x', w; \alpha, \Gamma_Y, \beta, \Gamma_Y) \label{eq:kappa}\\
     &= \kappa(x, x', w), 
 \end{align}
 %
@@ -192,9 +192,9 @@ then our estimate of this expected counterfactual is
 %
 We often suppress $w$ in both $\kappa$ and $\hat{\kappa}$. 
 
-Uncertainty quantification for our estimator, $\hat{\kappa}$, proceeds by the $\delta$-method \citep[see, e.g.,][]{vdV98}. We first get asymptotic covariance matrices for estimators of our two sets of regression parameters. Next, we stack these two covariances into a single $2\times 2$ block-diagonal matrix (\hl{assuming asymptotic independence between models, see} \citealp{Bau06}), then pre- and post-multiply by the Jacobian of $\kappa$. From traditional M-estimator theory, the asymptotic covariance of our regression estimators is approximately the inverse Hessian of their respective objective functions at the maximizers (given appropriate regularity conditions). These objective functions differ from log-likelihoods only in that Laplace's method is used to approximate the marginal likelihood of the data from its joint likelihood with the random-effects.
+Uncertainty quantification for our estimator, $\hat{\kappa}$, proceeds by the $\delta$-method \citep[see, e.g.,][]{vdV98}. We first get asymptotic covariance matrices for estimators of our two sets of regression parameters. Next, we stack these two covariances into a single $2\times 2$ block-diagonal matrix (\hl{assuming asymptotic independence between models, see} \citealp{Bau06}), then pre- and post-multiply by the Jacobian of $\kappa$. From classical M-estimator theory, the asymptotic covariance of our regression estimators is approximately the inverse Hessian of their respective objective functions at the maximizers (given appropriate regularity conditions). These objective functions differ from log-likelihoods only in that Laplace's method is used to approximate the marginal likelihood of the data from its joint likelihood with the random-effects.
 
-We omit here an explicit formula for the asymptotic covariance of $\hat{\kappa}$, \textcolor{red}{but one can be found in our \texttt{R} package\footnote{Name idea: \texttt{MultMedUQ}?}. See also the supplemental material for an accompanying derivation.} For concreteness however, write $\sqrt{n} (\hat{\kappa}(x, x') - \kappa(x, x')) \rightsquigarrow N(0, \lambda^2(x, x'))$. We will often also need the limiting joint dependence of $\kappa$ evaluated at two sets of values for $x$ and $x'$. In this case we write $\rho(x_1, x'_1; x_2, x'_2)$ for the asymptotic correlation between $\hat{\kappa}(x_1, x'_1)$ and $\hat{\kappa}(x_2, x'_2)$.
+We omit here an explicit formula for the asymptotic covariance of $\hat{\kappa}$, \textcolor{red}{but one can be found in our \texttt{R} package\footnote{Name idea: \texttt{MultMedUQ}?}. See also the supplemental material for an accompanying derivation.} For concreteness however, write $\sqrt{n} (\hat{\kappa}(x, x') - \kappa(x, x')) \rightsquigarrow N(0, \lambda^2(x, x'))$, where $\rightsquigarrow$ denotes convergence in distribution. We will often also need the limiting joint dependence of $\kappa$ evaluated at two sets of values for $x$ and $x'$. In this case we write $\rho(x_1, x'_1; x_2, x'_2)$ for the asymptotic correlation between $\hat{\kappa}(x_1, x'_1)$ and $\hat{\kappa}(x_2, x'_2)$.
 
 
 \subsection{Mediation Effects}
